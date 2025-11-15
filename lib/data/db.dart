@@ -100,6 +100,19 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX idx_sample_type ON sample(sampleType)');
     await db.execute('CREATE INDEX idx_taxon_type ON taxon(specimenType)');
 
+    await db.execute('''
+      CREATE TABLE rank_definition (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        specimenType TEXT NOT NULL,
+        name TEXT NOT NULL,
+        sequence INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('CREATE UNIQUE INDEX idx_rank_def_unique ON rank_definition(specimenType, name)');
+    await db.execute('CREATE INDEX idx_rank_def_seq ON rank_definition(specimenType, sequence)');
+
+    await _seedDefaultRankDefinitions(db);
+
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -137,6 +150,22 @@ class DatabaseHelper {
     // Ensure indexes
     await db.execute('CREATE INDEX IF NOT EXISTS idx_sample_type ON sample(sampleType)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_taxon_type ON taxon(specimenType)');
+
+    final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+    final names = tables.map((e) => e['name'] as String).toSet();
+    if (!names.contains('rank_definition')) {
+      await db.execute('''
+        CREATE TABLE rank_definition (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          specimenType TEXT NOT NULL,
+          name TEXT NOT NULL,
+          sequence INTEGER NOT NULL
+        )
+      ''');
+      await db.execute('CREATE UNIQUE INDEX idx_rank_def_unique ON rank_definition(specimenType, name)');
+      await db.execute('CREATE INDEX idx_rank_def_seq ON rank_definition(specimenType, sequence)');
+    }
+    await _seedDefaultRankDefinitions(db);
   }
 
   
@@ -145,6 +174,25 @@ class DatabaseHelper {
     if (_database != null) {
       await _database!.close();
       _database = null;
+    }
+  }
+
+  Future<void> _seedDefaultRankDefinitions(Database db) async {
+    final types = ['Phytoplankton', 'Zooplankton', 'Macrobenthos'];
+    final defaults = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+    for (final t in types) {
+      final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(1) FROM rank_definition WHERE specimenType = ?', [t])) ?? 0;
+      if (count == 0) {
+        int seq = 1;
+        for (final name in defaults) {
+          await db.insert('rank_definition', {
+            'specimenType': t,
+            'name': name,
+            'sequence': seq,
+          });
+          seq++;
+        }
+      }
     }
   }
 }

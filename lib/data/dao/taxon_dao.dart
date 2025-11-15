@@ -1,5 +1,6 @@
 import '../db.dart';
 import '../models.dart';
+import 'package:sqflite/sqflite.dart';
 
 class TaxonDao {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -110,6 +111,38 @@ class TaxonDao {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<void> deleteRankAndTaxa(String specimenType, String rankName) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      final baseRows = await txn.query('taxon', where: 'specimenType = ? AND LOWER(rank) = LOWER(?)', whereArgs: [specimenType, rankName]);
+      if (baseRows.isEmpty) return;
+      final toDelete = <int>{};
+      final queue = <int>[];
+      for (final r in baseRows) {
+        final id = r['id'] as int;
+        toDelete.add(id);
+        queue.add(id);
+      }
+      while (queue.isNotEmpty) {
+        final parentIds = List<int>.from(queue);
+        queue.clear();
+        final placeholders = List.filled(parentIds.length, '?').join(',');
+        final children = await txn.rawQuery('SELECT id FROM taxon WHERE parentId IN ($placeholders)', parentIds);
+        for (final c in children) {
+          final id = c['id'] as int;
+          if (toDelete.add(id)) {
+            queue.add(id);
+          }
+        }
+      }
+      if (toDelete.isEmpty) return;
+      final idsList = toDelete.toList();
+      final placeholders = List.filled(idsList.length, '?').join(',');
+      await txn.delete('count_record', where: 'taxonId IN ($placeholders)', whereArgs: idsList);
+      await txn.delete('taxon', where: 'id IN ($placeholders)', whereArgs: idsList);
+    });
   }
 
   // Get the full ancestry path for a taxon

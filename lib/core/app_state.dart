@@ -4,6 +4,7 @@ import '../data/dao/taxon_dao.dart';
 import '../data/dao/sample_dao.dart';
 import '../data/dao/count_dao.dart';
 import '../data/dao/project_dao.dart';
+import '../data/dao/rank_definition_dao.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
@@ -324,7 +325,9 @@ class AppState with ChangeNotifier {
 
   Future<List<String>> exportCsvForClientDateRange({required String client, required DateTime start, required DateTime end, required String specimenType}) async {
     final exportDir = await _getExportDirectory();
-
+    final rankDao = RankDefinitionDao();
+    final rankDefs = await rankDao.getRanksByType(specimenType);
+    final rankNames = rankDefs.map((r) => r.name).toList();
     final samplesAll = await _sampleDao.getAllSamples();
     final samples = samplesAll.where((s) {
       final withinDate = !s.date.isBefore(start) && !s.date.isAfter(end);
@@ -333,41 +336,25 @@ class AppState with ChangeNotifier {
       return withinDate && matchesClient && matchesType;
     }).toList();
 
-    final lines = <String>[
-      'StationId,Date,ClientID,Location,Phylum,Class,Order,Family,Genus,Species,Count'
-    ];
+    final header = ['StationId','Date','ClientID','Location',...rankNames,'Count'];
+    final lines = <String>[header.join(',')];
 
     for (final s in samples) {
       final counts = await _countDao.getCountsWithTaxa(s.id!);
       for (final row in counts) {
         final taxonId = row['taxonId'] as int;
         final path = await _taxonDao.getTaxonAncestry(taxonId);
-        String? phylum;
-        String? clazz;
-        String? order;
-        String? family;
-        String? genus;
-        String? species;
+        final pathMap = <String,String>{};
         for (final t in path) {
           final r = (t.rank ?? '').toLowerCase();
-          if (r == 'phylum') phylum = t.name;
-          if (r == 'class') clazz = t.name;
-          if (r == 'order') order = t.name;
-          if (r == 'family') family = t.name;
-          if (r == 'genus') genus = t.name;
-          if (r == 'species') species = t.name;
+          if (r.isNotEmpty) pathMap[r] = t.name;
         }
         final line = [
           s.stationId,
           '${s.date.year}-${s.date.month.toString().padLeft(2,'0')}-${s.date.day.toString().padLeft(2,'0')}',
           client,
           s.habitat ?? '',
-          phylum ?? '',
-          clazz ?? '',
-          order ?? '',
-          family ?? '',
-          genus ?? '',
-          species ?? '',
+          ...rankNames.map((rn) => pathMap[rn.toLowerCase()] ?? ''),
           row['count'].toString(),
         ].map((v) => _csvEscape(v.toString())).join(',');
         lines.add(line);
@@ -383,9 +370,11 @@ class AppState with ChangeNotifier {
 
   Future<String> exportCsvForSampleIds({required String client, required List<int> sampleIds, required String specimenType}) async {
     final exportDir = await _getExportDirectory();
-    final lines = <String>[
-      'StationId,Date,ClientID,Location,Phylum,Class,Order,Family,Genus,Species,Count'
-    ];
+    final rankDao = RankDefinitionDao();
+    final rankDefs = await rankDao.getRanksByType(specimenType);
+    final rankNames = rankDefs.map((r) => r.name).toList();
+    final header = ['StationId','Date','ClientID','Location',...rankNames,'Count'];
+    final lines = <String>[header.join(',')];
     final samplesAll = await _sampleDao.getAllSamples();
     final samples = samplesAll.where((s) => sampleIds.contains(s.id) && s.sampleType == specimenType).toList();
     for (final s in samples) {
@@ -393,32 +382,17 @@ class AppState with ChangeNotifier {
       for (final row in counts) {
         final taxonId = row['taxonId'] as int;
         final path = await _taxonDao.getTaxonAncestry(taxonId);
-        String? phylum;
-        String? clazz;
-        String? order;
-        String? family;
-        String? genus;
-        String? species;
+        final pathMap = <String,String>{};
         for (final t in path) {
           final r = (t.rank ?? '').toLowerCase();
-          if (r == 'phylum') phylum = t.name;
-          if (r == 'class') clazz = t.name;
-          if (r == 'order') order = t.name;
-          if (r == 'family') family = t.name;
-          if (r == 'genus') genus = t.name;
-          if (r == 'species') species = t.name;
+          if (r.isNotEmpty) pathMap[r] = t.name;
         }
         final line = [
           s.stationId,
           '${s.date.year}-${s.date.month.toString().padLeft(2,'0')}-${s.date.day.toString().padLeft(2,'0')}',
           client,
           s.habitat ?? '',
-          phylum ?? '',
-          clazz ?? '',
-          order ?? '',
-          family ?? '',
-          genus ?? '',
-          species ?? '',
+          ...rankNames.map((rn) => pathMap[rn.toLowerCase()] ?? ''),
           row['count'].toString(),
         ].map((v) => _csvEscape(v.toString())).join(',');
         lines.add(line);
