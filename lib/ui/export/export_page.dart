@@ -94,17 +94,20 @@ class _ExportPageState extends State<ExportPage> {
                 ChoiceChip(
                   label: const Text('Phytoplankton'),
                   selected: _exportType == 'Phytoplankton',
-                  onSelected: (_) => setState(() => _exportType = 'Phytoplankton'),
+                  onSelected: (_) =>
+                      setState(() => _exportType = 'Phytoplankton'),
                 ),
                 ChoiceChip(
                   label: const Text('Zooplankton'),
                   selected: _exportType == 'Zooplankton',
-                  onSelected: (_) => setState(() => _exportType = 'Zooplankton'),
+                  onSelected: (_) =>
+                      setState(() => _exportType = 'Zooplankton'),
                 ),
                 ChoiceChip(
                   label: const Text('Macrobenthos'),
                   selected: _exportType == 'Macrobenthos',
-                  onSelected: (_) => setState(() => _exportType = 'Macrobenthos'),
+                  onSelected: (_) =>
+                      setState(() => _exportType = 'Macrobenthos'),
                 ),
               ],
             ),

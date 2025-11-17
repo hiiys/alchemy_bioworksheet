@@ -9,6 +9,7 @@ class AppRoutes {
   static const String registration = '/registration';
   static const String analysis = '/analysis';
   static const String export = '/export';
+  static const String orderRegistration = '/order-registration';
 }
 
 class AppPageTitles {
@@ -18,6 +19,7 @@ class AppPageTitles {
   static const String registration = 'Specimen Registration';
   static const String analysis = 'Macrobenthos Analysis';
   static const String export = 'Export Results';
+  static const String orderRegistration = 'Order Registration';
 }
 
 // Navigation helper class

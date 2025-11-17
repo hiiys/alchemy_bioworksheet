@@ -185,12 +185,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
           builder: (context, rankSnap) {
             final rankDefs = rankSnap.data ?? [];
             final ranks = rankDefs.map((r) => r.name).toList();
-            final leaves = taxa.where((t) => !taxa.any((c) => c.parentId == t.id)).toList()
-              ..sort((a, b) => (a.name).toLowerCase().compareTo((b.name).toLowerCase()));
+            final leaves =
+                taxa.where((t) => !taxa.any((c) => c.parentId == t.id)).toList()
+                  ..sort(
+                    (a, b) => (a.name).toLowerCase().compareTo(
+                      (b.name).toLowerCase(),
+                    ),
+                  );
             final rankOrder = ranks.map((e) => e.toLowerCase()).toList();
             final columns = [
-              if (_canModify)
-                const DataColumn(label: Text('Select')),
+              if (_canModify) const DataColumn(label: Text('Select')),
               const DataColumn(label: Text('Unique ID')),
               ...ranks.map((r) => DataColumn(label: Text(r))).toList(),
             ];
@@ -207,7 +211,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     pathByRankName[r] = current.name;
                     pathByRankTaxon[r] = current;
                   }
-                  current = taxa.where((t) => t.id == current!.parentId).cast<Taxon?>().firstWhere((t) => true, orElse: () => null);
+                  current = taxa
+                      .where((t) => t.id == current!.parentId)
+                      .cast<Taxon?>()
+                      .firstWhere((t) => true, orElse: () => null);
                 }
 
                 final cells = <DataCell>[];
@@ -215,7 +222,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   cells.add(
                     DataCell(
                       Checkbox(
-                        value: leaf.id != null && _selectedLeafIds.contains(leaf.id!),
+                        value:
+                            leaf.id != null &&
+                            _selectedLeafIds.contains(leaf.id!),
                         onChanged: (v) {
                           setState(() {
                             if (leaf.id != null) {
@@ -224,7 +233,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               } else {
                                 _selectedLeafIds.remove(leaf.id!);
                               }
-                              _selectAll = _selectedLeafIds.length == leaves.where((l) => l.id != null).length;
+                              _selectAll =
+                                  _selectedLeafIds.length ==
+                                  leaves.where((l) => l.id != null).length;
                             }
                           });
                         },
@@ -235,75 +246,99 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 cells.add(
                   DataCell(
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 6,
+                      ),
                       child: Text(leaf.id?.toString() ?? ''),
                     ),
                   ),
                 );
-                cells.addAll(ranks.map((rankLabel) {
-                  final lowerRank = rankLabel.toLowerCase();
-                  final value = pathByRankName[lowerRank] ?? '';
-                  return DataCell(
-                    InkWell(
-                      onTap: () async {
-                        if (!_canModify) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tap Modify to enable editing')),
-                          );
-                          return;
-                        }
-                        final controller = TextEditingController(text: value);
-                        await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text('Edit $rankLabel'),
-                            content: TextField(
-                              controller: controller,
-                              decoration: InputDecoration(
-                                labelText: value.isEmpty ? 'Enter $rankLabel' : 'Change $rankLabel',
-                                border: const OutlineInputBorder(),
+                cells.addAll(
+                  ranks.map((rankLabel) {
+                    final lowerRank = rankLabel.toLowerCase();
+                    final value = pathByRankName[lowerRank] ?? '';
+                    return DataCell(
+                      InkWell(
+                        onTap: () async {
+                          if (!_canModify) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Tap Modify to enable editing'),
                               ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
+                            );
+                            return;
+                          }
+                          final controller = TextEditingController(text: value);
+                          await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('Edit $rankLabel'),
+                              content: TextField(
+                                controller: controller,
+                                decoration: InputDecoration(
+                                  labelText: value.isEmpty
+                                      ? 'Enter $rankLabel'
+                                      : 'Change $rankLabel',
+                                  border: const OutlineInputBorder(),
+                                ),
                               ),
-                              FilledButton(
-                                onPressed: () async {
-                                  final newVal = controller.text.trim();
-                                  Navigator.pop(context);
-                                  if (newVal.isEmpty && value.isEmpty) return;
-                                  if (value.isEmpty) {
-                                    await _addRankValueForSpecimen(appState, leaf, lowerRank, newVal, pathByRankTaxon, rankOrder);
-                                  } else {
-                                    final taxonToUpdate = pathByRankTaxon[lowerRank];
-                                    if (taxonToUpdate != null) {
-                                      await appState.updateTaxon(Taxon(
-                                        id: taxonToUpdate.id,
-                                        parentId: taxonToUpdate.parentId,
-                                        name: newVal.isEmpty ? taxonToUpdate.name : newVal,
-                                        rank: taxonToUpdate.rank,
-                                        notes: taxonToUpdate.notes,
-                                        specimenType: _viewSpecimenType,
-                                      ));
-                                      await _setTaxaModifiedNow();
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () async {
+                                    final newVal = controller.text.trim();
+                                    Navigator.pop(context);
+                                    if (newVal.isEmpty && value.isEmpty) return;
+                                    if (value.isEmpty) {
+                                      await _addRankValueForSpecimen(
+                                        appState,
+                                        leaf,
+                                        lowerRank,
+                                        newVal,
+                                        pathByRankTaxon,
+                                        rankOrder,
+                                      );
+                                    } else {
+                                      final taxonToUpdate =
+                                          pathByRankTaxon[lowerRank];
+                                      if (taxonToUpdate != null) {
+                                        await appState.updateTaxon(
+                                          Taxon(
+                                            id: taxonToUpdate.id,
+                                            parentId: taxonToUpdate.parentId,
+                                            name: newVal.isEmpty
+                                                ? taxonToUpdate.name
+                                                : newVal,
+                                            rank: taxonToUpdate.rank,
+                                            notes: taxonToUpdate.notes,
+                                            specimenType: _viewSpecimenType,
+                                          ),
+                                        );
+                                        await _setTaxaModifiedNow();
+                                      }
                                     }
-                                  }
-                                },
-                                child: const Text('Save'),
-                              ),
-                            ],
+                                  },
+                                  child: const Text('Save'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 6,
                           ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-                        child: Text(value),
+                          child: Text(value),
+                        ),
                       ),
-                    ),
-                  );
-                }).toList());
+                    );
+                  }).toList(),
+                );
                 rows.add(DataRow(cells: cells));
               }
               return rows;
@@ -368,219 +403,249 @@ class _RegistrationPageState extends State<RegistrationPage> {
       _selectedLeafIds.clear();
       _selectAll = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Modification cancelled')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Modification cancelled')));
   }
-
-  
 
   void _showAddTaxonDialog(BuildContext context, Taxon? parent) {
-      final nameController = TextEditingController();
-      final rankController = TextEditingController();
-      final notesController = TextEditingController();
+    final nameController = TextEditingController();
+    final rankController = TextEditingController();
+    final notesController = TextEditingController();
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(parent == null ? 'Add Root Taxon' : 'Add Child Taxon to ${parent.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
-                  border: OutlineInputBorder(),
-                ),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          parent == null
+              ? 'Add Root Taxon'
+              : 'Add Child Taxon to ${parent.name}',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: rankController,
-                decoration: const InputDecoration(
-                  labelText: 'Rank (e.g., Family, Genus)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
             ),
-            FilledButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty) {
-                  final appState = Provider.of<AppState>(context, listen: false);
-                  final taxon = Taxon(
-                    parentId: parent?.id,
-                    name: nameController.text,
-                    rank: rankController.text.isEmpty ? null : rankController.text,
-                    notes: notesController.text.isEmpty ? null : notesController.text,
-                  );
-                  appState.addTaxon(taxon);
-                  await _setTaxaModifiedNow();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Taxon added successfully')),
-                  );
-                }
-              },
-              child: const Text('Add'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: rankController,
+              decoration: const InputDecoration(
+                labelText: 'Rank (e.g., Family, Genus)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
             ),
           ],
         ),
-      );
-  }
-
-  void _showEditTaxonDialog(BuildContext context, Taxon taxon) {
-      final nameController = TextEditingController(text: taxon.name);
-      final rankController = TextEditingController(text: taxon.rank ?? '');
-      final notesController = TextEditingController(text: taxon.notes ?? '');
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Edit Taxon'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: rankController,
-                decoration: const InputDecoration(
-                  labelText: 'Rank',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty) {
-                  final appState = Provider.of<AppState>(context, listen: false);
-                  final updatedTaxon = Taxon(
-                    id: taxon.id,
-                    parentId: taxon.parentId,
-                    name: nameController.text,
-                    rank: rankController.text.isEmpty ? null : rankController.text,
-                    notes: notesController.text.isEmpty ? null : notesController.text,
-                  );
-                  appState.updateTaxon(updatedTaxon);
-                  await _setTaxaModifiedNow();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Taxon updated successfully')),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      );
-  }
-
-  void _showDeleteTaxonDialog(BuildContext context, Taxon taxon) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Delete Taxon'),
-          content: Text('Are you sure you want to delete "${taxon.name}"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
+          FilledButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
                 final appState = Provider.of<AppState>(context, listen: false);
-                appState.deleteTaxon(taxon.id!);
+                final taxon = Taxon(
+                  parentId: parent?.id,
+                  name: nameController.text,
+                  rank: rankController.text.isEmpty
+                      ? null
+                      : rankController.text,
+                  notes: notesController.text.isEmpty
+                      ? null
+                      : notesController.text,
+                );
+                appState.addTaxon(taxon);
                 await _setTaxaModifiedNow();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Deleted taxon: ${taxon.name}')),
+                  const SnackBar(content: Text('Taxon added successfully')),
                 );
-              },
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTaxonDialog(BuildContext context, Taxon taxon) {
+    final nameController = TextEditingController(text: taxon.name);
+    final rankController = TextEditingController(text: taxon.rank ?? '');
+    final notesController = TextEditingController(text: taxon.notes ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Taxon'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: rankController,
+              decoration: const InputDecoration(
+                labelText: 'Rank',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
             ),
           ],
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                final appState = Provider.of<AppState>(context, listen: false);
+                final updatedTaxon = Taxon(
+                  id: taxon.id,
+                  parentId: taxon.parentId,
+                  name: nameController.text,
+                  rank: rankController.text.isEmpty
+                      ? null
+                      : rankController.text,
+                  notes: notesController.text.isEmpty
+                      ? null
+                      : notesController.text,
+                );
+                appState.updateTaxon(updatedTaxon);
+                await _setTaxaModifiedNow();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Taxon updated successfully')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteTaxonDialog(BuildContext context, Taxon taxon) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Taxon'),
+        content: Text('Are you sure you want to delete "${taxon.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final appState = Provider.of<AppState>(context, listen: false);
+              appState.deleteTaxon(taxon.id!);
+              await _setTaxaModifiedNow();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Deleted taxon: ${taxon.name}')),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showImportDialog() {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Import Taxa from CSV'),
-          content: const Text('Select a CSV. Header columns can include any taxa ranks (e.g., Phylum, Class, Order, Family, Genus, Species, or custom). Each row is a specimen registration; leave cells blank if not applicable.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _importCsv();
-                await _setTaxaModifiedNow();
-              },
-              child: const Text('Choose File'),
-            ),
-          ],
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Taxa from CSV'),
+        content: const Text(
+          'Select a CSV. Header columns can include any taxa ranks (e.g., Phylum, Class, Order, Family, Genus, Species, or custom). Each row is a specimen registration; leave cells blank if not applicable.',
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _importCsv();
+              await _setTaxaModifiedNow();
+            },
+            child: const Text('Choose File'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _importCsv() async {
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
       if (result == null || result.files.single.path == null) return;
       final path = result.files.single.path!;
       final file = File(path);
       final content = await file.readAsString();
-      final lines = content.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
+      final lines = content
+          .split(RegExp(r'\r?\n'))
+          .where((l) => l.trim().isNotEmpty)
+          .toList();
       if (lines.isEmpty) return;
       final headers = lines.first.split(',').map((h) => h.trim()).toList();
       final lower = headers.map((h) => h.toLowerCase()).toList();
       final rankDao = RankDefinitionDao();
+      final uniqueIdxCandidates = [
+        lower.indexOf('unique id'),
+        lower.indexOf('uniqueid'),
+        lower.indexOf('unique_id'),
+      ];
+      final uniqueIdx = uniqueIdxCandidates.firstWhere(
+        (i) => i != -1,
+        orElse: () => -1,
+      );
       for (final h in headers) {
         if (h.isEmpty) continue;
+        final lh = h.toLowerCase();
+        if (lh == 'unique id' ||
+            lh == 'uniqueid' ||
+            lh == 'unique_id' ||
+            lh == 'specimentype')
+          continue;
         await rankDao.ensureRank(_viewSpecimenType, h);
       }
       final rankDefs = await rankDao.getRanksByType(_viewSpecimenType);
@@ -597,30 +662,92 @@ class _RegistrationPageState extends State<RegistrationPage> {
       int created = 0;
       for (int i = 1; i < lines.length; i++) {
         final cols = lines[i].split(',').map((c) => c.trim()).toList();
+        final type = appState.activeSample?.sampleType ?? 'Macrobenthos';
         int? parentId;
+        final sequenceValues = <MapEntry<String, String>>[];
         for (final r in dynamicOrder) {
           final idx = idxMap[r] ?? -1;
           if (idx == -1 || idx >= cols.length) continue;
           final val = cols[idx];
           if (val.isEmpty) continue;
-          final taxon = await taxonDao.upsertTaxon(parentId, val, rank: _capitalize(r), specimenType: appState.activeSample?.sampleType ?? 'Macrobenthos');
-          parentId = taxon.id;
-          created++;
+          sequenceValues.add(MapEntry(r, val));
+        }
+        if (sequenceValues.isEmpty) continue;
+        for (int j = 0; j < sequenceValues.length; j++) {
+          final r = sequenceValues[j].key;
+          final val = sequenceValues[j].value;
+          final isLeaf = j == sequenceValues.length - 1;
+          if (!isLeaf) {
+            final taxon = await taxonDao.upsertTaxon(
+              parentId,
+              val,
+              rank: _capitalize(r),
+              specimenType: type,
+            );
+            parentId = taxon.id;
+            created++;
+          } else {
+            final uniqueStr = uniqueIdx != -1 && uniqueIdx < cols.length
+                ? cols[uniqueIdx]
+                : null;
+            final uniqueId = uniqueStr != null ? int.tryParse(uniqueStr) : null;
+            if (uniqueId != null) {
+              final existing = await taxonDao.getTaxonByParentAndName(
+                parentId,
+                val,
+                specimenType: type,
+              );
+              if (existing != null) {
+                if (existing.id != uniqueId) {
+                  await taxonDao.updatePrimaryKey(existing.id!, uniqueId);
+                }
+              } else {
+                await taxonDao.insertTaxon(
+                  Taxon(
+                    id: uniqueId,
+                    parentId: parentId,
+                    name: val,
+                    rank: _capitalize(r),
+                    notes: null,
+                    specimenType: type,
+                  ),
+                );
+              }
+              created++;
+            } else {
+              final taxon = await taxonDao.upsertTaxon(
+                parentId,
+                val,
+                rank: _capitalize(r),
+                specimenType: type,
+              );
+              parentId = taxon.id;
+              created++;
+            }
+          }
         }
       }
       await appState.reloadTaxa();
       await _setTaxaModifiedNow();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import complete. Created/linked: $created taxa')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Import complete. Created/linked: $created taxa'),
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
     }
   }
-  
+
   Future<void> _loadLastModified() async {
     final prefs = await SharedPreferences.getInstance();
     final millis = prefs.getInt('taxa_last_modified');
     if (millis != null) {
-      setState(() => _lastModified = DateTime.fromMillisecondsSinceEpoch(millis));
+      setState(
+        () => _lastModified = DateTime.fromMillisecondsSinceEpoch(millis),
+      );
     }
   }
 
@@ -634,7 +761,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
-  String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   Future<void> _showSpecimenRegistrationDialog() async {
     final rankDao = RankDefinitionDao();
@@ -650,16 +779,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...ranks.map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: TextField(
-                      controller: controllers[r.name]!,
-                      decoration: InputDecoration(
-                        labelText: r.name,
-                        border: const OutlineInputBorder(),
-                      ),
+              ...ranks.map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: controllers[r.name]!,
+                    decoration: InputDecoration(
+                      labelText: r.name,
+                      border: const OutlineInputBorder(),
                     ),
-                  )),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -677,12 +808,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 final v = controllers[r.name]!.text.trim();
                 if (v.isEmpty) continue;
                 anyValue = true;
-                final t = await taxonDao.upsertTaxon(parentId, v, rank: r.name, specimenType: _viewSpecimenType);
+                final t = await taxonDao.upsertTaxon(
+                  parentId,
+                  v,
+                  rank: r.name,
+                  specimenType: _viewSpecimenType,
+                );
                 parentId = t.id;
               }
               if (!anyValue) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter at least one taxa value')),
+                  const SnackBar(
+                    content: Text('Please enter at least one taxa value'),
+                  ),
                 );
                 return;
               }
@@ -711,8 +849,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
       final taxa = _viewSpecimenType == appState.activeSample?.sampleType
           ? appState.taxa
           : await taxonDao.getAllTaxaByType(_viewSpecimenType);
-      final leaves = taxa.where((t) => !taxa.any((c) => c.parentId == t.id)).toList()
-        ..sort((a, b) => (a.name).toLowerCase().compareTo((b.name).toLowerCase()));
+      final leaves =
+          taxa.where((t) => !taxa.any((c) => c.parentId == t.id)).toList()
+            ..sort(
+              (a, b) =>
+                  (a.name).toLowerCase().compareTo((b.name).toLowerCase()),
+            );
       final lines = <String>[];
       lines.add(['Unique ID', 'SpecimenType', ...ranks].join(','));
       for (final leaf in leaves) {
@@ -723,14 +865,21 @@ class _RegistrationPageState extends State<RegistrationPage> {
           if (r.isNotEmpty) {
             pathByRankName[r] = current.name;
           }
-          current = taxa.where((t) => t.id == current!.parentId).cast<Taxon?>().firstWhere((t) => true, orElse: () => null);
+          current = taxa
+              .where((t) => t.id == current!.parentId)
+              .cast<Taxon?>()
+              .firstWhere((t) => true, orElse: () => null);
         }
         final row = [
           leaf.id?.toString() ?? '',
           _viewSpecimenType,
           ...ranks.map((r) => pathByRankName[r.toLowerCase()] ?? ''),
         ];
-        lines.add(row.map((v) => v.contains(',') ? '"${v.replaceAll('"', '""')}"' : v).join(','));
+        lines.add(
+          row
+              .map((v) => v.contains(',') ? '"${v.replaceAll('"', '""')}"' : v)
+              .join(','),
+        );
       }
       final baseDir = await getApplicationDocumentsDirectory();
       final outDir = Directory('${baseDir.path}/Macrobenthos');
@@ -739,13 +888,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
       final outPath = '${outDir.path}/$filename';
       final f = File(outPath);
       await f.writeAsString(lines.join('\n'));
-      await Share.shareXFiles([XFile(outPath)], text: 'Specimen registration export');
+      await Share.shareXFiles([
+        XFile(outPath),
+      ], text: 'Specimen registration export');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 
-  String _fmtDate(DateTime d) => '${d.year}${d.month.toString().padLeft(2,'0')}${d.day.toString().padLeft(2,'0')}';
+  String _fmtDate(DateTime d) =>
+      '${d.year}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}';
   Future<void> _addRankValueForSpecimen(
     AppState appState,
     Taxon leaf,
@@ -764,7 +918,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
         break;
       }
     }
-    final newTaxon = Taxon(parentId: parentId, name: newVal, rank: _capitalize(lowerRank), specimenType: appState.activeSample?.sampleType ?? 'Macrobenthos');
+    final newTaxon = Taxon(
+      parentId: parentId,
+      name: newVal,
+      rank: _capitalize(lowerRank),
+      specimenType: appState.activeSample?.sampleType ?? 'Macrobenthos',
+    );
     final newId = await taxonDao.insertTaxon(newTaxon);
     Taxon? childToReparent;
     for (int i = rankOrder.indexOf(lowerRank) + 1; i < rankOrder.length; i++) {
@@ -776,13 +935,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
       }
     }
     childToReparent ??= leaf;
-    await appState.updateTaxon(Taxon(
-      id: childToReparent.id,
-      parentId: newId,
-      name: childToReparent.name,
-      rank: childToReparent.rank,
-      notes: childToReparent.notes,
-    ));
+    await appState.updateTaxon(
+      Taxon(
+        id: childToReparent.id,
+        parentId: newId,
+        name: childToReparent.name,
+        rank: childToReparent.rank,
+        notes: childToReparent.notes,
+      ),
+    );
     await appState.reloadTaxa();
     await _setTaxaModifiedNow();
   }
@@ -808,15 +969,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              ...currentRanks.map((r) => Row(
-                    children: [
-                      SizedBox(
-                        width: 28,
-                        child: Text('${r.sequence}.'),
-                      ),
-                      Expanded(child: Text(r.name)),
-                    ],
-                  )),
+              ...currentRanks.map(
+                (r) => Row(
+                  children: [
+                    SizedBox(width: 28, child: Text('${r.sequence}.')),
+                    Expanded(child: Text(r.name)),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: seqController,
@@ -847,15 +1007,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
               final seq = int.tryParse(seqController.text.trim());
               final taxaName = taxaNameController.text.trim();
               if (seq == null || taxaName.isEmpty) return;
-              await rankDao.insertRank(_viewSpecimenType, _capitalize(taxaName), seq);
+              await rankDao.insertRank(
+                _viewSpecimenType,
+                _capitalize(taxaName),
+                seq,
+              );
               final appState = Provider.of<AppState>(context, listen: false);
               await appState.reloadTaxa();
               await _setTaxaModifiedNow();
               // ignore: use_build_context_synchronously
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('New taxa added')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('New taxa added')));
             },
             child: const Text('Add'),
           ),
@@ -876,22 +1040,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...ranks.map((r) => Row(
-                    children: [
-                      SizedBox(
-                        width: 28,
-                        child: Text('${r.sequence}.'),
-                      ),
-                      Expanded(child: Text(r.name)),
-                    ],
-                  )),
+              ...ranks.map(
+                (r) => Row(
+                  children: [
+                    SizedBox(width: 28, child: Text('${r.sequence}.')),
+                    Expanded(child: Text(r.name)),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 items: ranks
-                    .map((r) => DropdownMenuItem<int>(
-                          value: r.sequence,
-                          child: Text('Sequence ${r.sequence}'),
-                        ))
+                    .map(
+                      (r) => DropdownMenuItem<int>(
+                        value: r.sequence,
+                        child: Text('Sequence ${r.sequence}'),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => selectedSeq = v,
                 decoration: const InputDecoration(
@@ -910,11 +1075,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
           FilledButton(
             onPressed: () async {
               if (selectedSeq == null) return;
-              final def = await rankDao.getBySequence(_viewSpecimenType, selectedSeq!);
+              final def = await rankDao.getBySequence(
+                _viewSpecimenType,
+                selectedSeq!,
+              );
               if (def == null) return;
               final taxonDao = TaxonDao();
               await taxonDao.deleteRankAndTaxa(_viewSpecimenType, def.name);
-              await rankDao.deleteRankBySequence(_viewSpecimenType, selectedSeq!);
+              await rankDao.deleteRankBySequence(
+                _viewSpecimenType,
+                selectedSeq!,
+              );
               final appState = Provider.of<AppState>(context, listen: false);
               await appState.reloadTaxa();
               await _setTaxaModifiedNow();
@@ -931,12 +1102,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
-  Future<void> _confirmDeleteRegistration(BuildContext context, Taxon leaf) async {
+  Future<void> _confirmDeleteRegistration(
+    BuildContext context,
+    Taxon leaf,
+  ) async {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Registration'),
-        content: Text('Delete specimen registration with Unique ID ${leaf.id}?'),
+        content: Text(
+          'Delete specimen registration with Unique ID ${leaf.id}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -971,13 +1147,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
         .map((t) => t.id)
         .whereType<int>()
         .toList();
-    final idsToDelete = _selectAll
-        ? allLeafIds
-        : _selectedLeafIds.toList();
+    final idsToDelete = _selectAll ? allLeafIds : _selectedLeafIds.toList();
     if (idsToDelete.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No records selected')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No records selected')));
       return;
     }
     final confirm = await showDialog<bool>(
@@ -986,8 +1160,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
         title: const Text('Delete Selected'),
         content: Text('Delete ${idsToDelete.length} registration(s)?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('OK')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
@@ -1002,9 +1182,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
       _selectedLeafIds.clear();
       _selectAll = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Deleted $deleted registration(s)')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Deleted $deleted registration(s)')));
   }
 
   Future<void> _deleteAllRegistrations() async {
@@ -1013,10 +1193,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete All Registrations'),
-        content: Text('This will remove all ${_viewSpecimenType} registrations. Proceed?'),
+        content: Text(
+          'This will remove all ${_viewSpecimenType} registrations. Proceed?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('OK')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
@@ -1024,13 +1212,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
     final appState = Provider.of<AppState>(context, listen: false);
     final db = await DatabaseHelper().database;
     // Delete only taxa for the selected specimen type and their counts
-    final ids = await db.rawQuery('SELECT id FROM taxon WHERE specimenType = ?', [_viewSpecimenType]);
+    final ids = await db.rawQuery(
+      'SELECT id FROM taxon WHERE specimenType = ?',
+      [_viewSpecimenType],
+    );
     final taxonIds = ids.map((e) => e['id'] as int).toList();
     if (taxonIds.isNotEmpty) {
       final placeholders = List.filled(taxonIds.length, '?').join(',');
-      await db.delete('count_record', where: 'taxonId IN ($placeholders)', whereArgs: taxonIds);
+      await db.delete(
+        'count_record',
+        where: 'taxonId IN ($placeholders)',
+        whereArgs: taxonIds,
+      );
     }
-    await db.delete('taxon', where: 'specimenType = ?', whereArgs: [_viewSpecimenType]);
+    await db.delete(
+      'taxon',
+      where: 'specimenType = ?',
+      whereArgs: [_viewSpecimenType],
+    );
     await appState.reloadTaxa();
     await _setTaxaModifiedNow();
     setState(() {

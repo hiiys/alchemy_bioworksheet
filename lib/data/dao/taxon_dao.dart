@@ -53,20 +53,30 @@ class TaxonDao {
     return null;
   }
 
-  Future<Taxon?> getTaxonByParentAndName(int? parentId, String name, {String? specimenType}) async {
+  Future<Taxon?> getTaxonByParentAndName(
+    int? parentId,
+    String name, {
+    String? specimenType,
+  }) async {
     final db = await _dbHelper.database;
     List<Map<String, dynamic>> maps;
     if (parentId == null) {
       maps = await db.query(
         'taxon',
-        where: 'parentId IS NULL AND LOWER(name) = LOWER(?)' + (specimenType != null ? ' AND specimenType = ?' : ''),
+        where:
+            'parentId IS NULL AND LOWER(name) = LOWER(?)' +
+            (specimenType != null ? ' AND specimenType = ?' : ''),
         whereArgs: specimenType != null ? [name, specimenType] : [name],
       );
     } else {
       maps = await db.query(
         'taxon',
-        where: 'parentId = ? AND LOWER(name) = LOWER(?)' + (specimenType != null ? ' AND specimenType = ?' : ''),
-        whereArgs: specimenType != null ? [parentId, name, specimenType] : [parentId, name],
+        where:
+            'parentId = ? AND LOWER(name) = LOWER(?)' +
+            (specimenType != null ? ' AND specimenType = ?' : ''),
+        whereArgs: specimenType != null
+            ? [parentId, name, specimenType]
+            : [parentId, name],
       );
     }
     if (maps.isNotEmpty) {
@@ -75,13 +85,38 @@ class TaxonDao {
     return null;
   }
 
-  Future<Taxon> upsertTaxon(int? parentId, String name, {String? rank, String? notes, String? specimenType}) async {
-    final existing = await getTaxonByParentAndName(parentId, name, specimenType: specimenType);
+  Future<Taxon> upsertTaxon(
+    int? parentId,
+    String name, {
+    String? rank,
+    String? notes,
+    String? specimenType,
+  }) async {
+    final existing = await getTaxonByParentAndName(
+      parentId,
+      name,
+      specimenType: specimenType,
+    );
     if (existing != null) {
       return existing;
     }
-    final id = await insertTaxon(Taxon(parentId: parentId, name: name, rank: rank, notes: notes, specimenType: specimenType));
-    return Taxon(id: id, parentId: parentId, name: name, rank: rank, notes: notes, specimenType: specimenType);
+    final id = await insertTaxon(
+      Taxon(
+        parentId: parentId,
+        name: name,
+        rank: rank,
+        notes: notes,
+        specimenType: specimenType,
+      ),
+    );
+    return Taxon(
+      id: id,
+      parentId: parentId,
+      name: name,
+      rank: rank,
+      notes: notes,
+      specimenType: specimenType,
+    );
   }
 
   Future<List<Taxon>> searchTaxa(String query) async {
@@ -106,17 +141,27 @@ class TaxonDao {
 
   Future<int> deleteTaxon(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
-      'taxon',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('taxon', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updatePrimaryKey(int oldId, int newId) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      await txn.rawUpdate('UPDATE taxon SET id = ? WHERE id = ?', [
+        newId,
+        oldId,
+      ]);
+    });
   }
 
   Future<void> deleteRankAndTaxa(String specimenType, String rankName) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
-      final baseRows = await txn.query('taxon', where: 'specimenType = ? AND LOWER(rank) = LOWER(?)', whereArgs: [specimenType, rankName]);
+      final baseRows = await txn.query(
+        'taxon',
+        where: 'specimenType = ? AND LOWER(rank) = LOWER(?)',
+        whereArgs: [specimenType, rankName],
+      );
       if (baseRows.isEmpty) return;
       final toDelete = <int>{};
       final queue = <int>[];
@@ -129,7 +174,10 @@ class TaxonDao {
         final parentIds = List<int>.from(queue);
         queue.clear();
         final placeholders = List.filled(parentIds.length, '?').join(',');
-        final children = await txn.rawQuery('SELECT id FROM taxon WHERE parentId IN ($placeholders)', parentIds);
+        final children = await txn.rawQuery(
+          'SELECT id FROM taxon WHERE parentId IN ($placeholders)',
+          parentIds,
+        );
         for (final c in children) {
           final id = c['id'] as int;
           if (toDelete.add(id)) {
@@ -140,8 +188,16 @@ class TaxonDao {
       if (toDelete.isEmpty) return;
       final idsList = toDelete.toList();
       final placeholders = List.filled(idsList.length, '?').join(',');
-      await txn.delete('count_record', where: 'taxonId IN ($placeholders)', whereArgs: idsList);
-      await txn.delete('taxon', where: 'id IN ($placeholders)', whereArgs: idsList);
+      await txn.delete(
+        'count_record',
+        where: 'taxonId IN ($placeholders)',
+        whereArgs: idsList,
+      );
+      await txn.delete(
+        'taxon',
+        where: 'id IN ($placeholders)',
+        whereArgs: idsList,
+      );
     });
   }
 
@@ -149,7 +205,7 @@ class TaxonDao {
   Future<List<Taxon>> getTaxonAncestry(int taxonId) async {
     final List<Taxon> ancestry = [];
     Taxon? current = await getTaxonById(taxonId);
-    
+
     while (current != null) {
       ancestry.insert(0, current);
       if (current.parentId != null) {
@@ -158,7 +214,7 @@ class TaxonDao {
         current = null;
       }
     }
-    
+
     return ancestry;
   }
 
@@ -182,12 +238,15 @@ class TaxonDao {
 
   Future<List<Taxon>> getLeafTaxaByType(String specimenType) async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      '''
       SELECT t.* FROM taxon t 
       WHERE t.specimenType = ? AND NOT EXISTS (
         SELECT 1 FROM taxon c WHERE c.parentId = t.id
       )
-    ''', [specimenType]);
+    ''',
+      [specimenType],
+    );
     return List.generate(maps.length, (i) => Taxon.fromMap(maps[i]));
   }
 }

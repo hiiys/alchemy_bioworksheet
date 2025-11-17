@@ -42,29 +42,30 @@ class SampleDao {
 
   Future<int> deleteSample(int id) async {
     final db = await _dbHelper.database;
-    
+
     // First delete associated count records
-    await db.delete(
-      'count_record',
-      where: 'sampleId = ?',
-      whereArgs: [id],
-    );
-    
+    await db.delete('count_record', where: 'sampleId = ?', whereArgs: [id]);
+
     // Then delete the sample
-    return await db.delete(
-      'sample',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('sample', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> clearAll() async {
+    final db = await _dbHelper.database;
+    await db.delete('count_record');
+    await db.delete('sample');
   }
 
   // Get total count for a sample
   Future<int> getTotalCountForSample(int sampleId) async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      '''
       SELECT SUM(count) as total FROM count_record WHERE sampleId = ?
-    ''', [sampleId]);
-    
+    ''',
+      [sampleId],
+    );
+
     if (result.isNotEmpty && result.first['total'] != null) {
       return result.first['total'] as int;
     }
@@ -84,18 +85,32 @@ class SampleDao {
     return maps;
   }
 
-  Future<List<Sample>> getSamplesByClientAndDateRange(String client, DateTime start, DateTime end) async {
+  Future<List<Sample>> getSamplesByClientAndDateRange(
+    String client,
+    DateTime start,
+    DateTime end,
+  ) async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      '''
       SELECT * FROM sample 
       WHERE client = ? AND date BETWEEN ? AND ?
       ORDER BY date DESC
-    ''', [
-      client,
-      start.millisecondsSinceEpoch,
-      end.millisecondsSinceEpoch,
-    ]);
+    ''',
+      [client, start.millisecondsSinceEpoch, end.millisecondsSinceEpoch],
+    );
     return List.generate(maps.length, (i) => Sample.fromMap(maps[i]));
+  }
+
+  Future<List<Sample>> getSamplesByOrder(int orderId) async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      'sample',
+      where: 'orderId = ?',
+      whereArgs: [orderId],
+      orderBy: 'id ASC',
+    );
+    return rows.map((e) => Sample.fromMap(e)).toList();
   }
 
   Future<void> markSampleCompleted(int id, bool completed) async {
@@ -107,5 +122,4 @@ class SampleDao {
       whereArgs: [id],
     );
   }
-
 }

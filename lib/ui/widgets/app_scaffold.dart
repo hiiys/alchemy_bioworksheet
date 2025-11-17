@@ -35,10 +35,7 @@ class AppScaffold extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 1,
-          ),
+          bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
         ),
       ),
       child: Row(
@@ -74,13 +71,6 @@ class AppScaffold extends StatelessWidget {
           ),
           _buildNavButton(
             context,
-            icon: Icons.analytics,
-            label: 'Analysis',
-            route: AppRoutes.analysis,
-            currentRoute: currentRoute,
-          ),
-          _buildNavButton(
-            context,
             icon: Icons.file_download,
             label: 'Export',
             route: AppRoutes.export,
@@ -105,11 +95,7 @@ class AppScaffold extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (!isActive) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            route,
-            (route) => false,
-          );
+          Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
         }
       },
       child: Column(
@@ -125,7 +111,9 @@ class AppScaffold extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: isActive ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.6),
+              color: isActive
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.6),
               size: 24,
             ),
           ),
@@ -133,7 +121,9 @@ class AppScaffold extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isActive ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.6),
+              color: isActive
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
           ),

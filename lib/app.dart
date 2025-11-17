@@ -9,6 +9,7 @@ import 'ui/sample_list/sample_list_page.dart';
 import 'ui/registration/registration_page.dart';
 import 'ui/analysis/analysis_page.dart';
 import 'ui/export/export_page.dart';
+import 'ui/order/order_registration_page.dart';
 
 class MacrobenthosCounterApp extends StatelessWidget {
   const MacrobenthosCounterApp({super.key});
@@ -31,6 +32,13 @@ class MacrobenthosCounterApp extends StatelessWidget {
           AppRoutes.registration: (context) => const RegistrationPage(),
           AppRoutes.analysis: (context) => const AnalysisPage(),
           AppRoutes.export: (context) => const ExportPage(),
+          AppRoutes.orderRegistration: (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            final type = args?['specimenType'] as String? ?? 'Macrobenthos';
+            return OrderRegistrationPage(specimenType: type);
+          },
         },
       ),
     );
