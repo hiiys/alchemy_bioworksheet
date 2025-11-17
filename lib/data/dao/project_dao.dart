@@ -40,11 +40,7 @@ class ProjectDao {
 
   Future<int> deleteProjectInfo(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
-      'project_info',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('project_info', where: 'id = ?', whereArgs: [id]);
   }
 
   // Get the most recent project info

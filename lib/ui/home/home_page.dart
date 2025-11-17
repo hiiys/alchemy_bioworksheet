@@ -26,6 +26,42 @@ class _HomePageState extends State<HomePage> {
 
     return AppScaffold(
       title: AppPageTitles.home,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_forever),
+          tooltip: 'Reset Data',
+          onPressed: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Reset All Data'),
+                content: const Text(
+                  'This will delete all orders, samples, and counts. Proceed?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+            );
+            if (ok == true) {
+              await Provider.of<AppState>(
+                context,
+                listen: false,
+              ).resetAllData();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('All data reset')));
+            }
+          },
+        ),
+      ],
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -56,13 +92,52 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
                   ],
                 ),
               ),
             ),
 
             const SizedBox(height: 24),
+
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.orderRegistration,
+                      arguments: {'specimenType': 'Macrobenthos'},
+                    ),
+                    icon: const Icon(Icons.add_circle),
+                    label: const Text('New Macrobenthos Order'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.orderRegistration,
+                      arguments: {'specimenType': 'Zooplankton'},
+                    ),
+                    icon: const Icon(Icons.add_circle),
+                    label: const Text('New Zooplankton Order'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.orderRegistration,
+                      arguments: {'specimenType': 'Phytoplankton'},
+                    ),
+                    icon: const Icon(Icons.add_circle),
+                    label: const Text('New Phytoplankton Order'),
+                  ),
+                ),
+              ],
+            ),
 
             // Dashboard summary
             Card(
@@ -118,63 +193,7 @@ class _HomePageState extends State<HomePage> {
             ),
 
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _selectedSampleIds.isEmpty
-                        ? null
-                        : () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete Sample'),
-                                content: const Text(
-                                  'Are you sure you want to delete selected samples?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () async {
-                                      final appState = Provider.of<AppState>(
-                                        context,
-                                        listen: false,
-                                      );
-                                      for (final id
-                                          in _selectedSampleIds.toList()) {
-                                        await appState.deleteSample(id);
-                                      }
-                                      setState(() {
-                                        _selectedSampleIds.clear();
-                                        _selectAll = false;
-                                      });
-                                      // ignore: use_build_context_synchronously
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Selected samples deleted',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                    icon: const Icon(Icons.delete),
-                    label: const Text('Delete'),
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox.shrink(),
           ],
         ),
       ),
@@ -255,24 +274,29 @@ class _HomePageState extends State<HomePage> {
     items.sort((a, b) {
       int cmp;
       switch (_sortColumnIndex) {
-        case 1:
+        case 0:
           cmp = a.date.compareTo(b.date);
           break;
-        case 2:
+        case 1:
           cmp = (a.sampleType).toLowerCase().compareTo(
             (b.sampleType).toLowerCase(),
           );
           break;
-        case 3:
+        case 2:
           cmp = (a.client ?? '').toLowerCase().compareTo(
             (b.client ?? '').toLowerCase(),
           );
           break;
-        case 4:
+        case 3:
           cmp = a.stationId.toLowerCase().compareTo(b.stationId.toLowerCase());
           break;
-        case 5:
+        case 4:
           cmp = (a.completed ? 1 : 0).compareTo(b.completed ? 1 : 0);
+          break;
+        case 5:
+          cmp = (a.biologistId ?? '').toLowerCase().compareTo(
+            (b.biologistId ?? '').toLowerCase(),
+          );
           break;
         default:
           cmp = a.date.compareTo(b.date);
@@ -281,22 +305,6 @@ class _HomePageState extends State<HomePage> {
     });
 
     final columns = [
-      DataColumn(
-        label: Checkbox(
-          value: _selectAll,
-          onChanged: (v) {
-            setState(() {
-              _selectAll = v ?? false;
-              _selectedSampleIds.clear();
-              if (_selectAll) {
-                for (final s in items) {
-                  if (s.id != null) _selectedSampleIds.add(s.id!);
-                }
-              }
-            });
-          },
-        ),
-      ),
       DataColumn(
         label: const Text('Date'),
         onSort: (i, asc) {
@@ -362,67 +370,49 @@ class _HomePageState extends State<HomePage> {
           });
         },
       ),
+      DataColumn(
+        label: const Text('Biologist'),
+        onSort: (i, asc) {
+          setState(() {
+            if (_sortColumnIndex != i) {
+              _sortAscending = false;
+            } else {
+              _sortAscending = !_sortAscending;
+            }
+            _sortColumnIndex = i;
+          });
+        },
+      ),
     ];
 
     final rows = items.map((s) {
       return DataRow(
-        selected: s.id != null && _selectedSampleIds.contains(s.id!),
         cells: [
           DataCell(
-            Checkbox(
-              value: s.id != null && _selectedSampleIds.contains(s.id!),
-              onChanged: (v) {
-                setState(() {
-                  if (s.id != null) {
-                    if (v == true) {
-                      _selectedSampleIds.add(s.id!);
-                    } else {
-                      _selectedSampleIds.remove(s.id!);
-                    }
-                    _selectAll =
-                        _selectedSampleIds.length ==
-                        items.where((e) => e.id != null).length;
-                  }
-                });
-              },
-            ),
-          ),
-          DataCell(
             InkWell(
-              onTap: () {
-                appState.setActiveSample(s);
-                Navigator.pushNamed(context, AppRoutes.analysis);
-              },
+              onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
               child: Text(_formatDate(s.date)),
             ),
           ),
           DataCell(
             Text(s.sampleType),
-            onTap: () {
-              appState.setActiveSample(s);
-              Navigator.pushNamed(context, AppRoutes.analysis);
-            },
+            onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
           ),
           DataCell(
             Text(s.client ?? ''),
-            onTap: () {
-              appState.setActiveSample(s);
-              Navigator.pushNamed(context, AppRoutes.analysis);
-            },
+            onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
           ),
           DataCell(
             Text(s.stationId),
-            onTap: () {
-              appState.setActiveSample(s);
-              Navigator.pushNamed(context, AppRoutes.analysis);
-            },
+            onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
           ),
           DataCell(
             Text(s.completed ? 'Completed' : 'Pending'),
-            onTap: () {
-              appState.setActiveSample(s);
-              Navigator.pushNamed(context, AppRoutes.analysis);
-            },
+            onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
+          ),
+          DataCell(
+            Text(s.biologistId ?? ''),
+            onTap: () => _openAnalysisWithBiologistGate(context, s, appState),
           ),
         ],
       );
@@ -444,6 +434,67 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  void _openAnalysisWithBiologistGate(
+    BuildContext context,
+    Sample s,
+    AppState appState,
+  ) {
+    if ((s.biologistId ?? '').isEmpty) {
+      final ctrl = TextEditingController();
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Enter Biologist ID'),
+          content: TextField(
+            controller: ctrl,
+            decoration: const InputDecoration(
+              labelText: 'Biologist ID',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final id = ctrl.text.trim();
+                if (id.isEmpty) return;
+                final updated = Sample(
+                  id: s.id,
+                  stationId: s.stationId,
+                  date: s.date,
+                  lat: s.lat,
+                  lon: s.lon,
+                  habitat: s.habitat,
+                  client: s.client,
+                  biologistId: id,
+                  remarks: s.remarks,
+                  completed: s.completed,
+                  sampleType: s.sampleType,
+                  orderId: s.orderId,
+                  sampleMarking: s.sampleMarking,
+                  receiveId: s.receiveId,
+                  analyzedDate: s.analyzedDate,
+                );
+                await appState.updateSample(updated);
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+                appState.setActiveSample(updated);
+                Navigator.pushNamed(context, AppRoutes.analysis);
+              },
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    appState.setActiveSample(s);
+    Navigator.pushNamed(context, AppRoutes.analysis);
   }
 
   String _formatDate(DateTime date) {

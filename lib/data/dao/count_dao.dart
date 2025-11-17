@@ -44,17 +44,13 @@ class CountDao {
 
   Future<int> deleteCountRecord(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
-      'count_record',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('count_record', where: 'id = ?', whereArgs: [id]);
   }
 
   // Increment count for a taxon in a sample
   Future<void> incrementCount(int sampleId, int taxonId) async {
     final existingRecord = await getCountRecord(sampleId, taxonId);
-    
+
     if (existingRecord != null) {
       // Update existing record
       final updatedRecord = CountRecord(
@@ -80,7 +76,7 @@ class CountDao {
   // Decrement count for a taxon in a sample
   Future<void> decrementCount(int sampleId, int taxonId) async {
     final existingRecord = await getCountRecord(sampleId, taxonId);
-    
+
     if (existingRecord != null && existingRecord.count > 0) {
       if (existingRecord.count == 1) {
         // Delete record if count becomes 0
@@ -103,7 +99,7 @@ class CountDao {
   // Set specific count for a taxon in a sample
   Future<void> setCount(int sampleId, int taxonId, int count) async {
     final existingRecord = await getCountRecord(sampleId, taxonId);
-    
+
     if (count == 0) {
       // Delete record if count is 0
       if (existingRecord != null) {
@@ -140,12 +136,15 @@ class CountDao {
   // Get counts with taxon information for a sample
   Future<List<Map<String, dynamic>>> getCountsWithTaxa(int sampleId) async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      '''
       SELECT cr.*, t.name as taxonName, t.parentId, t.rank
       FROM count_record cr
       JOIN taxon t ON cr.taxonId = t.id
       WHERE cr.sampleId = ?
-    ''', [sampleId]);
+    ''',
+      [sampleId],
+    );
     return maps;
   }
 
@@ -157,5 +156,10 @@ class CountDao {
       where: 'sampleId = ?',
       whereArgs: [sampleId],
     );
+  }
+
+  Future<void> clearAll() async {
+    final db = await _dbHelper.database;
+    await db.delete('count_record');
   }
 }

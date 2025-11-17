@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
 import '../widgets/app_scaffold.dart';
@@ -33,6 +34,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
       final appState = Provider.of<AppState>(context, listen: false);
       if (!appState.hasActiveSample) {
         _showNoActiveSampleDialog(context);
+      } else {
+        final s = appState.activeSample!;
+        if (s.biologistId == null || (s.biologistId?.trim().isEmpty ?? true)) {
+          _promptBiologistId(appState);
+        }
       }
     });
   }
@@ -72,8 +78,10 @@ class _AnalysisPageState extends State<AnalysisPage> {
       );
     }
 
-    final currentChildren = appState.taxa.where((t) => !appState.taxa.any((c) => c.parentId == t.id)).toList();
-    final currentCount = _selectedTaxon != null 
+    final currentChildren = appState.taxa
+        .where((t) => !appState.taxa.any((c) => c.parentId == t.id))
+        .toList();
+    final currentCount = _selectedTaxon != null
         ? appState.currentCounts[_selectedTaxon!.id] ?? 0
         : 0;
 
@@ -92,8 +100,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
       ],
       body: Column(
         children: [
-          
-          
           // Search results overlay (when search is active and has query)
           if (_isSearchExpanded && _searchQuery.isNotEmpty)
             Container(
@@ -101,7 +107,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
               height: 200, // Fixed height for search results
               child: _buildSearchResults(context, _searchResults, appState),
             ),
-          
+
           // Taxon grid (or empty when search overlay is active)
           Expanded(
             child: !_isSearchExpanded || _searchQuery.isEmpty
@@ -135,10 +141,19 @@ class _AnalysisPageState extends State<AnalysisPage> {
                         _searchQuery = value;
                         if (value.isNotEmpty) {
                           final seen = <String>{};
-                          final results = appState.taxa
-                              .where((taxon) => taxon.name.toLowerCase().contains(value.toLowerCase()))
-                              .toList()
-                              ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                          final results =
+                              appState.taxa
+                                  .where(
+                                    (taxon) => taxon.name
+                                        .toLowerCase()
+                                        .contains(value.toLowerCase()),
+                                  )
+                                  .toList()
+                                ..sort(
+                                  (a, b) => a.name.toLowerCase().compareTo(
+                                    b.name.toLowerCase(),
+                                  ),
+                                );
                           _searchResults = [];
                           for (final t in results) {
                             final key = t.name.toLowerCase();
@@ -157,7 +172,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                     },
                   ),
                 ),
-              
+
               CounterBar(
                 selectedTaxon: _selectedTaxon,
                 count: currentCount,
@@ -175,7 +190,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                   });
                 },
               ),
-              
+
               // bottom-most counter bar only; no extra bar below
             ],
           ),
@@ -184,9 +199,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
     );
   }
 
-  
-
-  Widget _buildTaxonGrid(BuildContext context, List<Taxon> taxa, AppState appState) {
+  Widget _buildTaxonGrid(
+    BuildContext context,
+    List<Taxon> taxa,
+    AppState appState,
+  ) {
     if (taxa.isEmpty) {
       return const Center(
         child: Column(
@@ -219,6 +236,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
       if (r == 'species') return 5;
       return 6;
     }
+
     items.sort((a, b) {
       final wa = weight(a.rank);
       final wb = weight(b.rank);
@@ -233,38 +251,44 @@ class _AnalysisPageState extends State<AnalysisPage> {
         runSpacing: 6,
         children: [
           for (final taxon in items)
-            Builder(builder: (context) {
-              final count = appState.currentCounts[taxon.id] ?? 0;
-              final hasChildren = appState.taxa.any((t) => t.parentId == taxon.id);
-              final isSelected = _selectedTaxon?.id == taxon.id;
-              return BubbleChip(
-                taxon: taxon,
-                count: count,
-                isSelected: isSelected,
-                onTap: () {
-                  if (hasChildren) {
-                    appState.navigateToTaxon(taxon);
-                    setState(() {
-                      _selectedTaxon = null;
-                    });
-                  } else {
-                    setState(() {
-                      _selectedTaxon = taxon;
-                    });
-                  }
-                },
-              );
-            }),
+            Builder(
+              builder: (context) {
+                final count = appState.currentCounts[taxon.id] ?? 0;
+                final hasChildren = appState.taxa.any(
+                  (t) => t.parentId == taxon.id,
+                );
+                final isSelected = _selectedTaxon?.id == taxon.id;
+                return BubbleChip(
+                  taxon: taxon,
+                  count: count,
+                  isSelected: isSelected,
+                  onTap: () {
+                    if (hasChildren) {
+                      appState.navigateToTaxon(taxon);
+                      setState(() {
+                        _selectedTaxon = null;
+                      });
+                    } else {
+                      setState(() {
+                        _selectedTaxon = taxon;
+                      });
+                    }
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchResults(BuildContext context, List<Taxon> results, AppState appState) {
+  Widget _buildSearchResults(
+    BuildContext context,
+    List<Taxon> results,
+    AppState appState,
+  ) {
     if (results.isEmpty) {
-      return const Center(
-        child: Text('No taxa found'),
-      );
+      return const Center(child: Text('No taxa found'));
     }
 
     final items = List<Taxon>.from(results);
@@ -278,6 +302,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
       if (r == 'species') return 5;
       return 6;
     }
+
     items.sort((a, b) {
       final wa = weight(a.rank);
       final wb = weight(b.rank);
@@ -292,29 +317,33 @@ class _AnalysisPageState extends State<AnalysisPage> {
         runSpacing: 6,
         children: [
           for (final taxon in items)
-            Builder(builder: (context) {
-              final count = appState.currentCounts[taxon.id] ?? 0;
-              final hasChildren = appState.taxa.any((t) => t.parentId == taxon.id);
-              final isSelected = _selectedTaxon?.id == taxon.id;
-              return BubbleChip(
-                taxon: taxon,
-                count: count,
-                isSelected: isSelected,
-                onTap: () {
-                  if (hasChildren) {
-                    appState.navigateToTaxon(taxon);
-                    setState(() {
-                      _selectedTaxon = null;
-                    });
-                  } else {
-                    setState(() {
-                      _selectedTaxon = taxon;
-                    });
-                  }
-                  _hideSearch();
-                },
-              );
-            }),
+            Builder(
+              builder: (context) {
+                final count = appState.currentCounts[taxon.id] ?? 0;
+                final hasChildren = appState.taxa.any(
+                  (t) => t.parentId == taxon.id,
+                );
+                final isSelected = _selectedTaxon?.id == taxon.id;
+                return BubbleChip(
+                  taxon: taxon,
+                  count: count,
+                  isSelected: isSelected,
+                  onTap: () {
+                    if (hasChildren) {
+                      appState.navigateToTaxon(taxon);
+                      setState(() {
+                        _selectedTaxon = null;
+                      });
+                    } else {
+                      setState(() {
+                        _selectedTaxon = taxon;
+                      });
+                    }
+                    _hideSearch();
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
@@ -344,13 +373,56 @@ class _AnalysisPageState extends State<AnalysisPage> {
     });
   }
 
+  Future<void> _promptBiologistId(AppState appState) async {
+    final prefs = await SharedPreferences.getInstance();
+    final last = prefs.getString('last_biologist_id') ?? '';
+    final controller = TextEditingController(text: last);
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter Biologist ID'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Biologist ID',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final id = controller.text.trim();
+              await appState.updateActiveSampleBiologist(id);
+              await prefs.setString('last_biologist_id', id);
+              // ignore: use_build_context_synchronously
+              Navigator.pop(context);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Biologist set: $id')));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNoActiveSampleDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('No Active Sample'),
-        content: const Text('You need to create a sample before you can start counting.'),
+        content: const Text(
+          'You need to create a sample before you can start counting.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

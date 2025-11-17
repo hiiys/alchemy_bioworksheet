@@ -42,58 +42,169 @@ class ProjectInfo {
 
 class Sample {
   final int? id;
+  final int? orderId;
   final String stationId;
   final DateTime date;
   final double? lat;
   final double? lon;
   final String? habitat;
   final String? client;
+  final String? biologistId;
   final String? remarks;
   final bool completed;
   final String sampleType; // Phytoplankton | Zooplankton | Macrobenthos
+  final String? sampleMarking;
+  final String? receiveId;
+  final DateTime? analyzedDate;
 
   Sample({
     this.id,
+    this.orderId,
     required this.stationId,
     required this.date,
     this.lat,
     this.lon,
     this.habitat,
     this.client,
+    this.biologistId,
     this.remarks,
     this.completed = false,
     this.sampleType = 'Macrobenthos',
+    this.sampleMarking,
+    this.receiveId,
+    this.analyzedDate,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'orderId': orderId,
       'stationId': stationId,
       'date': date.millisecondsSinceEpoch,
       'lat': lat,
       'lon': lon,
       'habitat': habitat,
       'client': client,
+      'biologistId': biologistId,
       'remarks': remarks,
       'completed': completed ? 1 : 0,
       'sampleType': sampleType,
+      'sampleMarking': sampleMarking,
+      'receiveId': receiveId,
+      'analyzedDate': analyzedDate?.millisecondsSinceEpoch,
     };
   }
 
   factory Sample.fromMap(Map<String, dynamic> map) {
     return Sample(
       id: map['id'],
+      orderId: map['orderId'],
       stationId: map['stationId'],
       date: DateTime.fromMillisecondsSinceEpoch(map['date']),
       lat: map['lat'],
       lon: map['lon'],
       habitat: map['habitat'],
       client: map['client'],
+      biologistId: map['biologistId'],
       remarks: map['remarks'],
       completed: (map['completed'] ?? 0) == 1,
       sampleType: (map['sampleType'] ?? 'Macrobenthos') as String,
+      sampleMarking: map['sampleMarking'],
+      receiveId: map['receiveId'],
+      analyzedDate: map['analyzedDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['analyzedDate'])
+          : null,
     );
   }
+}
+
+class OrderInfo {
+  final int? id;
+  final String clientName;
+  final String? clientAddress;
+  final String specimenType;
+  final int numberOfSamples;
+  final int? numberOfReplicates;
+  final DateTime? dateReceived;
+  final DateTime? dateAnalysis;
+  final String? gearUsed;
+  final String? areaOfGrab;
+  final String? sieveSize;
+  final String? netDiameter;
+  final String? netMesh;
+  final String? towType;
+  final String? filteredVolume;
+  final String? methodAnalysis;
+  final String? reportNo;
+  final String? referenceId;
+  final String? comments;
+  OrderInfo({
+    this.id,
+    required this.clientName,
+    this.clientAddress,
+    required this.specimenType,
+    required this.numberOfSamples,
+    this.numberOfReplicates,
+    this.dateReceived,
+    this.dateAnalysis,
+    this.gearUsed,
+    this.areaOfGrab,
+    this.sieveSize,
+    this.netDiameter,
+    this.netMesh,
+    this.towType,
+    this.filteredVolume,
+    this.methodAnalysis,
+    this.reportNo,
+    this.referenceId,
+    this.comments,
+  });
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'clientName': clientName,
+    'clientAddress': clientAddress,
+    'specimenType': specimenType,
+    'numberOfSamples': numberOfSamples,
+    'numberOfReplicates': numberOfReplicates,
+    'dateReceived': dateReceived?.millisecondsSinceEpoch,
+    'dateAnalysis': dateAnalysis?.millisecondsSinceEpoch,
+    'gearUsed': gearUsed,
+    'areaOfGrab': areaOfGrab,
+    'sieveSize': sieveSize,
+    'netDiameter': netDiameter,
+    'netMesh': netMesh,
+    'towType': towType,
+    'filteredVolume': filteredVolume,
+    'methodAnalysis': methodAnalysis,
+    'reportNo': reportNo,
+    'referenceId': referenceId,
+    'comments': comments,
+  };
+  factory OrderInfo.fromMap(Map<String, dynamic> m) => OrderInfo(
+    id: m['id'] as int?,
+    clientName: m['clientName'] as String,
+    clientAddress: m['clientAddress'] as String?,
+    specimenType: m['specimenType'] as String,
+    numberOfSamples: (m['numberOfSamples'] ?? 0) as int,
+    numberOfReplicates: m['numberOfReplicates'] as int?,
+    dateReceived: m['dateReceived'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(m['dateReceived'] as int)
+        : null,
+    dateAnalysis: m['dateAnalysis'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(m['dateAnalysis'] as int)
+        : null,
+    gearUsed: m['gearUsed'] as String?,
+    areaOfGrab: m['areaOfGrab'] as String?,
+    sieveSize: m['sieveSize'] as String?,
+    netDiameter: m['netDiameter'] as String?,
+    netMesh: m['netMesh'] as String?,
+    towType: m['towType'] as String?,
+    filteredVolume: m['filteredVolume'] as String?,
+    methodAnalysis: m['methodAnalysis'] as String?,
+    reportNo: m['reportNo'] as String?,
+    referenceId: m['referenceId'] as String?,
+    comments: m['comments'] as String?,
+  );
 }
 
 class Taxon {

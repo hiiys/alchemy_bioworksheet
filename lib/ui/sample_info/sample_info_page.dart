@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import '../../core/app_state.dart';
+import '../../core/reference_id.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
 import '../widgets/app_scaffold.dart';
@@ -16,16 +14,7 @@ class SampleInfoPage extends StatefulWidget {
 }
 
 class _SampleInfoPageState extends State<SampleInfoPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _stationIdController = TextEditingController();
-  final _habitatController = TextEditingController();
-  final _clientController = TextEditingController();
-  final _remarksController = TextEditingController();
-
-  DateTime _selectedDate = DateTime.now();
-  double? _latitude;
-  double? _longitude;
-  String _sampleType = 'Macrobenthos';
+  bool _editMode = false;
 
   @override
   void initState() {
@@ -33,28 +22,10 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
     _loadCurrentSample();
   }
 
-  void _loadCurrentSample() {
-    final appState = Provider.of<AppState>(context, listen: false);
-    final sample = appState.activeSample;
-    
-    if (sample != null) {
-      _stationIdController.text = sample.stationId;
-      _selectedDate = sample.date;
-      _latitude = sample.lat;
-      _longitude = sample.lon;
-      _habitatController.text = sample.habitat ?? '';
-      _clientController.text = sample.client ?? '';
-      _remarksController.text = sample.remarks ?? '';
-      _sampleType = sample.sampleType;
-    }
-  }
+  void _loadCurrentSample() {}
 
   @override
   void dispose() {
-    _stationIdController.dispose();
-    _habitatController.dispose();
-    _clientController.dispose();
-    _remarksController.dispose();
     super.dispose();
   }
 
@@ -62,348 +33,616 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       title: AppPageTitles.sampleInfo,
+      actions: const [],
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              // Client ID at top
-              TextFormField(
-                controller: _clientController,
-                decoration: const InputDecoration(
-                  labelText: 'Client ID *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a client ID';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Station ID
-              TextFormField(
-                controller: _stationIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Station ID *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a station ID';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Sample Type
-              DropdownButtonFormField<String>(
-                value: _sampleType,
-                items: const [
-                  DropdownMenuItem(value: 'Phytoplankton', child: Text('Phytoplankton')),
-                  DropdownMenuItem(value: 'Zooplankton', child: Text('Zooplankton')),
-                  DropdownMenuItem(value: 'Macrobenthos', child: Text('Macrobenthos')),
-                ],
-                onChanged: (v) => setState(() => _sampleType = v ?? 'Macrobenthos'),
-                decoration: const InputDecoration(
-                  labelText: 'Sample Type *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Please select a sample type';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Date picker
-              Row(
-                children: [
-                  Expanded(
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Date *',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(_formatDate(_selectedDate)),
+        child: Consumer<AppState>(
+          builder: (context, appState, _) {
+            final orders = appState.orders;
+            if (orders.isEmpty) {
+              return const Center(child: Text('No registrations yet'));
+            }
+            return ListView.separated(
+              itemCount: orders.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) {
+                final o = orders[i];
+                return Card(
+                  child: ListTile(
+                    leading: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      tooltip: 'Delete Registration',
+                      onPressed: () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Registration'),
+                            content: const Text(
+                              'Delete this registration and all its samples?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true) {
+                          await Provider.of<AppState>(
+                            context,
+                            listen: false,
+                          ).deleteOrder(o.id!);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Registration deleted'),
+                            ),
+                          );
+                        }
+                      },
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: _selectDate,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // GPS coordinates
-              Row(
-                children: [
-                  Expanded(
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Latitude',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(_latitude?.toStringAsFixed(6) ?? 'Not set'),
+                    title: Text(
+                      '${o.clientName} (${o.numberOfSamples} samples)',
                     ),
+                    subtitle: null,
+                    trailing: Text(o.specimenType),
+                    onTap: () {
+                      _showOrderDetails(context, o, edit: true);
+                    },
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Longitude',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(_longitude?.toStringAsFixed(6) ?? 'Not set'),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.location_on),
-                    onPressed: _getCurrentLocation,
-                    tooltip: 'Get current location',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Location
-              TextFormField(
-                controller: _habitatController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-
-              // Remarks
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _saveSample,
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save Sample'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _setAsActive,
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Set as Active'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  Future<void> _configurePin() async {
-    final prefs = await SharedPreferences.getInstance();
-    final controller = TextEditingController();
+  Future<void> _showOrderDetails(
+    BuildContext context,
+    OrderInfo order, {
+    bool edit = false,
+  }) async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    // Editable controllers
+    final cName = TextEditingController(text: order.clientName);
+    final cAddr = TextEditingController(text: order.clientAddress ?? '');
+
+    final method = TextEditingController(text: order.methodAnalysis ?? '');
+    final reportNo = TextEditingController(text: order.reportNo ?? '');
+    final gear = TextEditingController(text: order.gearUsed ?? '');
+    final area = TextEditingController(text: order.areaOfGrab ?? '');
+    final sieve = TextEditingController(text: order.sieveSize ?? '');
+    final netDia = TextEditingController(text: order.netDiameter ?? '');
+    final netMesh = TextEditingController(text: order.netMesh ?? '');
+    final towType = TextEditingController(text: order.towType ?? '');
+    final filtVol = TextEditingController(text: order.filteredVolume ?? '');
+    final comments = TextEditingController(text: order.comments ?? '');
+
+    _editMode = edit;
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set/Change Access PIN'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'New PIN'),
-          obscureText: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final pin = controller.text;
-              if (pin.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PIN cannot be empty')),
-                );
-                return;
-              }
-              final hash = sha256.convert(utf8.encode(pin)).toString();
-              prefs.setString('pin_hash', hash);
-              prefs.setBool('pin_unlocked', false);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('PIN set. Required to access Sample Registration.')),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          Widget field(String label, TextEditingController c) {
+            return _editMode
+                ? TextField(
+                    controller: c,
+                    decoration: InputDecoration(
+                      labelText: label,
+                      border: const OutlineInputBorder(),
+                    ),
+                  )
+                : InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: label,
+                      border: const OutlineInputBorder(),
+                    ),
+                    child: Text(c.text),
+                  );
+          }
+
+          return AlertDialog(
+            title: Text('${order.specimenType} Registration'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  field('Client', cName),
+                  const SizedBox(height: 8),
+                  field('Client Address', cAddr),
+                  const SizedBox(height: 8),
+
+                  const SizedBox.shrink(),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Number of samples',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: InkWell(
+                            onTap: () async {
+                              final updated = await _manageSamples(
+                                context,
+                                order,
+                                cName.text.trim(),
+                              );
+                              if (updated != null) {
+                                setState(() {
+                                  order = OrderInfo(
+                                    id: order.id,
+                                    clientName: order.clientName,
+                                    clientAddress: order.clientAddress,
+                                    specimenType: order.specimenType,
+                                    numberOfSamples: updated,
+                                    numberOfReplicates:
+                                        order.numberOfReplicates,
+                                    dateReceived: order.dateReceived,
+                                    dateAnalysis: order.dateAnalysis,
+                                    gearUsed: order.gearUsed,
+                                    areaOfGrab: order.areaOfGrab,
+                                    sieveSize: order.sieveSize,
+                                    netDiameter: order.netDiameter,
+                                    netMesh: order.netMesh,
+                                    towType: order.towType,
+                                    filteredVolume: order.filteredVolume,
+                                    methodAnalysis: order.methodAnalysis,
+                                    reportNo: order.reportNo,
+                                    referenceId: order.referenceId,
+                                    comments: order.comments,
+                                  );
+                                });
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(order.numberOfSamples.toString()),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  field('Gear used', gear),
+                  if (order.specimenType == 'Macrobenthos') ...[
+                    const SizedBox(height: 8),
+                    field('Area of Grab', area),
+                    const SizedBox(height: 8),
+                    field('Sieve size', sieve),
+                  ],
+                  if (order.specimenType != 'Macrobenthos') ...[
+                    const SizedBox(height: 8),
+                    field('Net diameter', netDia),
+                    const SizedBox(height: 8),
+                    field('Net mesh', netMesh),
+                    const SizedBox(height: 8),
+                    field('Tow type', towType),
+                    const SizedBox(height: 8),
+                    field('Filtered volume', filtVol),
+                  ],
+                  const SizedBox(height: 8),
+                  field('Method of Analysis', method),
+                  const SizedBox(height: 8),
+                  field('Report No.', reportNo),
+                  const SizedBox(height: 8),
+                  field('Comments', comments),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              if (_editMode)
+                FilledButton(
+                  onPressed: () async {
+                    final updated = OrderInfo(
+                      id: order.id,
+                      clientName: cName.text.trim(),
+                      clientAddress: cAddr.text.trim().isEmpty
+                          ? null
+                          : cAddr.text.trim(),
+                      specimenType: order.specimenType,
+                      numberOfSamples: order.numberOfSamples,
+                      numberOfReplicates: order.numberOfReplicates,
+                      dateReceived: order.dateReceived,
+                      dateAnalysis: order.dateAnalysis,
+                      gearUsed: gear.text.trim().isEmpty
+                          ? null
+                          : gear.text.trim(),
+                      areaOfGrab: area.text.trim().isEmpty
+                          ? null
+                          : area.text.trim(),
+                      sieveSize: sieve.text.trim().isEmpty
+                          ? null
+                          : sieve.text.trim(),
+                      netDiameter: netDia.text.trim().isEmpty
+                          ? null
+                          : netDia.text.trim(),
+                      netMesh: netMesh.text.trim().isEmpty
+                          ? null
+                          : netMesh.text.trim(),
+                      towType: towType.text.trim().isEmpty
+                          ? null
+                          : towType.text.trim(),
+                      filteredVolume: filtVol.text.trim().isEmpty
+                          ? null
+                          : filtVol.text.trim(),
+                      methodAnalysis: method.text.trim().isEmpty
+                          ? null
+                          : method.text.trim(),
+                      reportNo: reportNo.text.trim().isEmpty
+                          ? null
+                          : reportNo.text.trim(),
+
+                      comments: comments.text.trim().isEmpty
+                          ? null
+                          : comments.text.trim(),
+                    );
+                    await appState.saveOrder(updated);
+                    await appState.updateClientForOrder(
+                      order.id!,
+                      cName.text.trim(),
+                    );
+                    // ignore: use_build_context_synchronously
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+  Future<int?> _manageSamples(
+    BuildContext context,
+    OrderInfo order,
+    String clientName,
+  ) async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    var samples = await appState.getSamplesByOrder(order.id!);
+    final addController = TextEditingController();
+    final recvController = TextEditingController();
+    final prefix = ReferenceId.prefixFor(order.specimenType);
+    recvController.text = prefix;
+    DateTime date = DateTime.now();
+    await showDialog(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    // TODO: Implement geolocator integration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location capture not implemented yet')),
-    );
-  }
-
-  void _saveSample() async {
-    print('Save button tapped');
-    print('Client ID: "${_clientController.text}"');
-    print('Station ID: "${_stationIdController.text}"');
-    
-    if (_formKey.currentState!.validate()) {
-      print('Form validation passed');
-      final appState = Provider.of<AppState>(context, listen: false);
-      final sample = Sample(
-        stationId: _stationIdController.text,
-        date: _selectedDate,
-        lat: _latitude,
-        lon: _longitude,
-        habitat: _habitatController.text.isEmpty ? null : _habitatController.text,
-        client: _clientController.text.isEmpty ? null : _clientController.text,
-        remarks: _remarksController.text.isEmpty ? null : _remarksController.text,
-        sampleType: _sampleType,
-      );
-      
-      try {
-        print('Save button pressed - creating sample...');
-        final isDuplicate = appState.samples.any((s) =>
-            (s.client ?? '').trim().toLowerCase() == (_clientController.text).trim().toLowerCase() &&
-            s.stationId.trim().toLowerCase() == _stationIdController.text.trim().toLowerCase() &&
-            s.sampleType == _sampleType &&
-            _sameDay(s.date, _selectedDate));
-        if (isDuplicate) {
-          await showDialog(
-            context: context,
-            builder: (context) => const AlertDialog(
-              title: Text('Duplicate Sample'),
-              content: Text('A sample with the same Client ID, Sample ID, Sample Type and Date already exists.'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Manage Samples'),
+            content: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: addController,
+                          decoration: const InputDecoration(
+                            labelText: 'New Sample Marking',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () async {
+                          final m = addController.text.trim();
+                          if (m.isEmpty) return;
+                          await appState.addSampleMarking(
+                            orderId: order.id!,
+                            specimenType: order.specimenType,
+                            clientName: clientName,
+                            sampleMarking: m,
+                            receiveId: recvController.text.trim().isEmpty
+                                ? null
+                                : recvController.text.trim(),
+                            dateAnalysis: date,
+                          );
+                          samples = await appState.getSamplesByOrder(order.id!);
+                          setState(() {});
+                          addController.clear();
+                          recvController.text = prefix;
+                        },
+                        child: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: recvController,
+                    inputFormatters: [
+                      ReferenceId.formatterForType(order.specimenType),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Reference ID',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Date Received',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(_formatDate(date)),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: date,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) setState(() => date = picked);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: samples.length,
+                      itemBuilder: (context, i) {
+                        final s = samples[i];
+                        return ListTile(
+                          title: Text(s.sampleMarking ?? s.stationId),
+                          subtitle: Text(
+                            'Reference ID: ${s.receiveId ?? ''} • Date Received: ${_formatDate(s.date)}${s.analyzedDate != null ? ' • Analyzed: ${_formatDate(s.analyzedDate!)}' : ''}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                tooltip: 'Edit Sample',
+                                onPressed: () async {
+                                  final recv = TextEditingController(
+                                    text: s.receiveId ?? '',
+                                  );
+                                  DateTime date = s.date;
+                                  final formatter =
+                                      ReferenceId.formatterForType(
+                                        order.specimenType,
+                                      );
+                                  if ((recv.text).isEmpty)
+                                    recv.text = ReferenceId.prefixFor(
+                                      order.specimenType,
+                                    );
+                                  await showDialog(
+                                    context: context,
+                                    builder: (context) => StatefulBuilder(
+                                      builder: (context, setState2) => AlertDialog(
+                                        title: const Text('Edit Sample'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            TextField(
+                                              controller: recv,
+                                              inputFormatters: [formatter],
+                                              decoration: const InputDecoration(
+                                                labelText: 'Reference ID',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: InputDecorator(
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          labelText:
+                                                              'Date Received',
+                                                          border:
+                                                              OutlineInputBorder(),
+                                                        ),
+                                                    child: Text(
+                                                      _formatDate(date),
+                                                    ),
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.calendar_today,
+                                                  ),
+                                                  onPressed: () async {
+                                                    final picked =
+                                                        await showDatePicker(
+                                                          context: context,
+                                                          initialDate: date,
+                                                          firstDate: DateTime(
+                                                            2000,
+                                                          ),
+                                                          lastDate: DateTime(
+                                                            2100,
+                                                          ),
+                                                        );
+                                                    if (picked != null)
+                                                      setState2(
+                                                        () => date = picked,
+                                                      );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () async {
+                                              final updated = Sample(
+                                                id: s.id,
+                                                orderId: s.orderId,
+                                                stationId: s.stationId,
+                                                date: date,
+                                                lat: s.lat,
+                                                lon: s.lon,
+                                                habitat: s.habitat,
+                                                client: s.client,
+                                                biologistId: s.biologistId,
+                                                remarks: s.remarks,
+                                                completed: s.completed,
+                                                sampleType: s.sampleType,
+                                                sampleMarking: s.sampleMarking,
+                                                receiveId:
+                                                    recv.text.trim().isEmpty
+                                                    ? null
+                                                    : recv.text.trim(),
+                                              );
+                                              await Provider.of<AppState>(
+                                                context,
+                                                listen: false,
+                                              ).updateSample(updated);
+                                              samples = await appState
+                                                  .getSamplesByOrder(order.id!);
+                                              // ignore: use_build_context_synchronously
+                                              Navigator.pop(context);
+                                              setState(() {});
+                                            },
+                                            child: const Text('Save'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () async {
+                                  if (s.id != null) {
+                                    await Provider.of<AppState>(
+                                      context,
+                                      listen: false,
+                                    ).deleteSample(s.id!);
+                                    samples = await appState.getSamplesByOrder(
+                                      order.id!,
+                                    );
+                                    setState(() {});
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  final updatedCount = samples.length;
+                  final updated = OrderInfo(
+                    id: order.id,
+                    clientName: order.clientName,
+                    clientAddress: order.clientAddress,
+                    specimenType: order.specimenType,
+                    numberOfSamples: updatedCount,
+                    numberOfReplicates: order.numberOfReplicates,
+                    dateReceived: order.dateReceived,
+                    dateAnalysis: order.dateAnalysis,
+                    gearUsed: order.gearUsed,
+                    areaOfGrab: order.areaOfGrab,
+                    sieveSize: order.sieveSize,
+                    netDiameter: order.netDiameter,
+                    netMesh: order.netMesh,
+                    towType: order.towType,
+                    filteredVolume: order.filteredVolume,
+                    methodAnalysis: order.methodAnalysis,
+                    reportNo: order.reportNo,
+                    referenceId: order.referenceId,
+                    comments: order.comments,
+                  );
+                  await Provider.of<AppState>(
+                    context,
+                    listen: false,
+                  ).saveOrder(updated);
+                  // ignore: use_build_context_synchronously
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: const Text('Done'),
+              ),
+            ],
           );
-          return;
-        }
-        // Save sample but stay on this page and keep field values
-        await appState.createSampleWithoutActivate(sample);
-        print('Sample saved successfully');
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sample saved successfully')),
-          );
-        }
-      } catch (e) {
-        print('Error saving sample: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error saving sample: $e')),
-          );
-        }
-      }
-    } else {
-      print('Form validation failed');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill required fields: Client ID and Station ID')),
-      );
-    }
+        },
+      ),
+    );
+    return samples.length;
   }
 
-  void _setAsActive() async {
-    print('Activate button tapped');
-    print('Client ID: "${_clientController.text}"');
-    print('Station ID: "${_stationIdController.text}"');
-    
-    if (_formKey.currentState!.validate()) {
-      print('Form validation passed for activate');
-      final appState = Provider.of<AppState>(context, listen: false);
-      final sample = Sample(
-        stationId: _stationIdController.text,
-        date: _selectedDate,
-        lat: _latitude,
-        lon: _longitude,
-        habitat: _habitatController.text.isEmpty ? null : _habitatController.text,
-        client: _clientController.text.isEmpty ? null : _clientController.text,
-        remarks: _remarksController.text.isEmpty ? null : _remarksController.text,
-        sampleType: _sampleType,
-      );
-
-      try {
-        print('Activate button pressed - creating and activating sample...');
-        final isDuplicate = appState.samples.any((s) =>
-            (s.client ?? '').trim().toLowerCase() == (_clientController.text).trim().toLowerCase() &&
-            s.stationId.trim().toLowerCase() == _stationIdController.text.trim().toLowerCase() &&
-            s.sampleType == _sampleType &&
-            _sameDay(s.date, _selectedDate));
-        if (isDuplicate) {
-          await showDialog(
-            context: context,
-            builder: (context) => const AlertDialog(
-              title: Text('Duplicate Sample'),
-              content: Text('A sample with the same Client ID, Sample ID, Sample Type and Date already exists.'),
+  Widget _editableDate(
+    String label,
+    DateTime? current,
+    void Function(DateTime) onPick,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: label,
+              border: const OutlineInputBorder(),
             ),
-          );
-          return;
-        }
-        // Create and activate sample, then go to Analysis
-        await appState.createSample(sample);
-        print('Sample activated successfully');
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sample set as active')),
-          );
-          Navigator.pushNamed(context, AppRoutes.analysis);
-        }
-      } catch (e) {
-        print('Error activating sample: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error setting sample as active: $e')),
-          );
-        }
-      }
-    } else {
-      print('Form validation failed for activate');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill required fields: Client ID and Station ID')),
-      );
-    }
+            child: Text(current == null ? '' : _formatDate(current)),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.calendar_today),
+          onPressed: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: current ?? DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) onPick(picked);
+          },
+        ),
+      ],
+    );
   }
+
+  void _getCurrentLocation() {}
+
+  void _saveSample() {}
+
+  void _setAsActive() {}
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -411,5 +650,9 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
 
   bool _sameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Future<void> _saveOrder(OrderInfo order) async {
+    await Provider.of<AppState>(context, listen: false).saveOrder(order);
   }
 }

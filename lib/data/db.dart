@@ -11,7 +11,7 @@ class DatabaseHelper {
   static DatabaseHelper? _instance;
 
   DatabaseHelper._internal();
-  
+
   factory DatabaseHelper() {
     _instance ??= DatabaseHelper._internal();
     return _instance!;
@@ -25,7 +25,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, _databaseName);
-    
+
     return await openDatabase(
       path,
       version: _databaseVersion,
@@ -54,12 +54,16 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE sample (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        orderId INTEGER,
+        sampleMarking TEXT,
+        receiveId TEXT,
         stationId TEXT NOT NULL,
         date INTEGER NOT NULL,
         lat REAL,
         lon REAL,
         habitat TEXT,
         client TEXT,
+        biologistId TEXT,
         remarks TEXT,
         completed INTEGER NOT NULL DEFAULT 0,
         sampleType TEXT NOT NULL DEFAULT 'Macrobenthos'
@@ -100,6 +104,22 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX idx_sample_type ON sample(sampleType)');
     await db.execute('CREATE INDEX idx_taxon_type ON taxon(specimenType)');
 
+    await db.execute('''
+      CREATE TABLE rank_definition (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        specimenType TEXT NOT NULL,
+        name TEXT NOT NULL,
+        sequence INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_rank_def_unique ON rank_definition(specimenType, name)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_rank_def_seq ON rank_definition(specimenType, sequence)',
+    );
+
+    await _seedDefaultRankDefinitions(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -109,11 +129,25 @@ class DatabaseHelper {
   Future<void> _ensureSchema(Database db) async {
     final sampleCols = await db.rawQuery("PRAGMA table_info(sample)");
     final sampleColNames = sampleCols.map((c) => c['name'] as String).toSet();
+    if (!sampleColNames.contains('orderId')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN orderId INTEGER');
+    }
+    if (!sampleColNames.contains('sampleMarking')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN sampleMarking TEXT');
+    }
+    if (!sampleColNames.contains('receiveId')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN receiveId TEXT');
+    }
+    if (!sampleColNames.contains('analyzedDate')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN analyzedDate INTEGER');
+    }
     if (!sampleColNames.contains('client')) {
       await db.execute('ALTER TABLE sample ADD COLUMN client TEXT');
     }
     if (!sampleColNames.contains('completed')) {
-      await db.execute('ALTER TABLE sample ADD COLUMN completed INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE sample ADD COLUMN completed INTEGER NOT NULL DEFAULT 0',
+      );
     }
     if (!sampleColNames.contains('lat')) {
       await db.execute('ALTER TABLE sample ADD COLUMN lat REAL');
@@ -125,26 +159,120 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE sample ADD COLUMN habitat TEXT');
     }
     if (!sampleColNames.contains('sampleType')) {
-      await db.execute("ALTER TABLE sample ADD COLUMN sampleType TEXT NOT NULL DEFAULT 'Macrobenthos'");
+      await db.execute(
+        "ALTER TABLE sample ADD COLUMN sampleType TEXT NOT NULL DEFAULT 'Macrobenthos'",
+      );
+    }
+    if (!sampleColNames.contains('biologistId')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN biologistId TEXT');
     }
 
     final taxonCols = await db.rawQuery("PRAGMA table_info(taxon)");
     final taxonColNames = taxonCols.map((c) => c['name'] as String).toSet();
     if (!taxonColNames.contains('specimenType')) {
-      await db.execute("ALTER TABLE taxon ADD COLUMN specimenType TEXT NOT NULL DEFAULT 'Macrobenthos'");
+      await db.execute(
+        "ALTER TABLE taxon ADD COLUMN specimenType TEXT NOT NULL DEFAULT 'Macrobenthos'",
+      );
     }
 
     // Ensure indexes
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_sample_type ON sample(sampleType)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_taxon_type ON taxon(specimenType)');
-  }
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_sample_type ON sample(sampleType)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_taxon_type ON taxon(specimenType)',
+    );
 
-  
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    );
+    final names = tables.map((e) => e['name'] as String).toSet();
+    if (!names.contains('orders')) {
+      await db.execute('''
+        CREATE TABLE orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          clientName TEXT NOT NULL,
+          clientAddress TEXT,
+          specimenType TEXT NOT NULL,
+          numberOfSamples INTEGER NOT NULL,
+          numberOfReplicates INTEGER,
+          dateReceived INTEGER,
+          dateAnalysis INTEGER,
+          gearUsed TEXT,
+          areaOfGrab TEXT,
+          sieveSize TEXT,
+          netDiameter TEXT,
+          netMesh TEXT,
+          towType TEXT,
+          filteredVolume TEXT,
+          methodAnalysis TEXT,
+          reportNo TEXT,
+          referenceId TEXT,
+          comments TEXT
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_orders_type ON orders(specimenType)',
+      );
+    }
+    // Ensure orders has referenceId column
+    final orderCols = await db.rawQuery("PRAGMA table_info(orders)");
+    final orderColNames = orderCols.map((c) => c['name'] as String).toSet();
+    if (!orderColNames.contains('referenceId')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN referenceId TEXT');
+    }
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_samples_order ON sample(orderId)',
+    );
+    if (!names.contains('rank_definition')) {
+      await db.execute('''
+        CREATE TABLE rank_definition (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          specimenType TEXT NOT NULL,
+          name TEXT NOT NULL,
+          sequence INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE UNIQUE INDEX idx_rank_def_unique ON rank_definition(specimenType, name)',
+      );
+      await db.execute(
+        'CREATE INDEX idx_rank_def_seq ON rank_definition(specimenType, sequence)',
+      );
+    }
+    await _seedDefaultRankDefinitions(db);
+  }
 
   Future<void> close() async {
     if (_database != null) {
       await _database!.close();
       _database = null;
+    }
+  }
+
+  Future<void> _seedDefaultRankDefinitions(Database db) async {
+    final types = ['Phytoplankton', 'Zooplankton', 'Macrobenthos'];
+    final defaults = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+    for (final t in types) {
+      final count =
+          Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COUNT(1) FROM rank_definition WHERE specimenType = ?',
+              [t],
+            ),
+          ) ??
+          0;
+      if (count == 0) {
+        int seq = 1;
+        for (final name in defaults) {
+          await db.insert('rank_definition', {
+            'specimenType': t,
+            'name': name,
+            'sequence': seq,
+          });
+          seq++;
+        }
+      }
     }
   }
 }
