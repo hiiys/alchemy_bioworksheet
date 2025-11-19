@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "macrobenthos_counter" "\0"
+            VALUE "FileDescription", "Alchemy Bioworksheet" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "macrobenthos_counter" "\0"
+            VALUE "InternalName", "alchemy_bioworksheet" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "macrobenthos_counter.exe" "\0"
-            VALUE "ProductName", "macrobenthos_counter" "\0"
+            VALUE "OriginalFilename", "alchemy_bioworksheet.exe" "\0"
+            VALUE "ProductName", "Alchemy Bioworksheet" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

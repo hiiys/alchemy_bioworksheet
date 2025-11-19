@@ -1,6 +1,6 @@
-# Macrobenthos Counter
+# Alchemy Bioworksheet
 
-A production-ready Flutter Android app for field teams to register sample metadata, manage specimen taxa, perform hierarchical counting with drill-down bubbles, and save results back into a sample list.
+A production-ready Flutter Android app for field teams to register sample metadata, manage specimen taxa (Macrobenthos, Zooplankton, Phytoplankton), perform hierarchical counting with drill-down bubbles, and save results back into a sample list.
 
 ## Features
 

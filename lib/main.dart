@@ -17,5 +17,5 @@ void main() async {
     print('Firebase initialization error: $e');
   }
 
-  runApp(const MacrobenthosCounterApp());
+  runApp(const AlchemyBioworksheetApp());
 }

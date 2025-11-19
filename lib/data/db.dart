@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
-  static const _databaseName = 'macrobenthos_counter.db';
+  static const _databaseName = 'alchemy_bioworksheet.db';
   static const _databaseVersion = 4;
 
   // Singleton instance

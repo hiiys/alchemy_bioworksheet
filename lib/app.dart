@@ -11,15 +11,15 @@ import 'ui/analysis/analysis_page.dart';
 import 'ui/export/export_page.dart';
 import 'ui/order/order_registration_page.dart';
 
-class MacrobenthosCounterApp extends StatelessWidget {
-  const MacrobenthosCounterApp({super.key});
+class AlchemyBioworksheetApp extends StatelessWidget {
+  const AlchemyBioworksheetApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => AppState()..initialize(),
       child: MaterialApp(
-        title: 'Macrobenthos Counter',
+        title: 'Alchemy Bioworksheet',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,

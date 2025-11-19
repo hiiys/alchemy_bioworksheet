@@ -1,6 +1,6 @@
 {
-    "name": "macrobenthos_counter",
-    "short_name": "macrobenthos_counter",
+    "name": "Alchemy Bioworksheet",
+    "short_name": "Alchemy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

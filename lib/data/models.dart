@@ -1,4 +1,4 @@
-// Data models for Macrobenthos Counter app
+// Data models for Alchemy Bioworksheet app
 
 class ProjectInfo {
   final int? id;
