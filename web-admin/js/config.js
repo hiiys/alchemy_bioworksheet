@@ -1,11 +1,11 @@
 // Firebase configuration for web
 const firebaseConfig = {
-    apiKey: "AIzaSyDoTrCljUWhprJ-6CotyBvJmNu10UG__r4",
-    authDomain: "macrobenthos-taxonomy-prod.firebaseapp.com",
-    projectId: "macrobenthos-taxonomy-prod",
-    storageBucket: "macrobenthos-taxonomy-prod.firebasestorage.app",
-    messagingSenderId: "369177608730",
-    appId: "1:369177608730:web:taxonomy-admin"
+    apiKey: "AIzaSyBIsTfSJrzOs9crnF8ew2MgJg1Xt_FoiWI",
+    authDomain: "alchemy-bioworksheet.firebaseapp.com",
+    projectId: "alchemy-bioworksheet",
+    storageBucket: "alchemy-bioworksheet.firebasestorage.app",
+    messagingSenderId: "126522184124",
+    appId: "1:126522184124:web:taxonomy-admin"
 };
 
 // Initialize Firebase

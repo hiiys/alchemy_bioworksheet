@@ -120,6 +120,27 @@ class DatabaseHelper {
     );
 
     await _seedDefaultRankDefinitions(db);
+
+    // Create pending_change table for tracking local modifications
+    await db.execute('''
+      CREATE TABLE pending_change (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        changeType TEXT NOT NULL,
+        specimenType TEXT NOT NULL,
+        taxonId INTEGER,
+        oldData TEXT,
+        newData TEXT,
+        timestamp INTEGER NOT NULL,
+        deviceId TEXT,
+        synced INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_pending_synced ON pending_change(synced)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_pending_type ON pending_change(specimenType)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -224,6 +245,30 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_samples_order ON sample(orderId)',
     );
+
+    // Ensure pending_change table exists
+    if (!names.contains('pending_change')) {
+      await db.execute('''
+        CREATE TABLE pending_change (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          changeType TEXT NOT NULL,
+          specimenType TEXT NOT NULL,
+          taxonId INTEGER,
+          oldData TEXT,
+          newData TEXT,
+          timestamp INTEGER NOT NULL,
+          deviceId TEXT,
+          synced INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_pending_synced ON pending_change(synced)',
+      );
+      await db.execute(
+        'CREATE INDEX idx_pending_type ON pending_change(specimenType)',
+      );
+    }
+
     if (!names.contains('rank_definition')) {
       await db.execute('''
         CREATE TABLE rank_definition (

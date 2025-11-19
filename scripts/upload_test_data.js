@@ -39,14 +39,14 @@ for (const loc of keyLocations) {
 if (serviceAccount) {
   initializeApp({
     credential: cert(serviceAccount),
-    projectId: 'macrobenthos-taxonomy-prod',
+    projectId: 'alchemy-bioworksheet',
   });
 } else {
   console.log('No service account key found. Using Application Default Credentials.');
   console.log('If this fails, please download a service account key from Firebase Console.');
   console.log('');
   initializeApp({
-    projectId: 'macrobenthos-taxonomy-prod',
+    projectId: 'alchemy-bioworksheet',
   });
 }
 

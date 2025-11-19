@@ -292,3 +292,68 @@ class CountRecord {
     );
   }
 }
+
+class PendingChange {
+  final int? id;
+  final String changeType; // 'create', 'update', 'delete'
+  final String specimenType;
+  final int? taxonId;
+  final String? oldData; // JSON string of old taxon data
+  final String? newData; // JSON string of new taxon data
+  final DateTime timestamp;
+  final String? deviceId;
+  final bool synced;
+
+  PendingChange({
+    this.id,
+    required this.changeType,
+    required this.specimenType,
+    this.taxonId,
+    this.oldData,
+    this.newData,
+    required this.timestamp,
+    this.deviceId,
+    this.synced = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'changeType': changeType,
+      'specimenType': specimenType,
+      'taxonId': taxonId,
+      'oldData': oldData,
+      'newData': newData,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'deviceId': deviceId,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory PendingChange.fromMap(Map<String, dynamic> map) {
+    return PendingChange(
+      id: map['id'],
+      changeType: map['changeType'],
+      specimenType: map['specimenType'],
+      taxonId: map['taxonId'],
+      oldData: map['oldData'],
+      newData: map['newData'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
+      deviceId: map['deviceId'],
+      synced: (map['synced'] ?? 0) == 1,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'changeType': changeType,
+      'specimenType': specimenType,
+      'taxonId': taxonId,
+      'oldData': oldData,
+      'newData': newData,
+      'timestamp': timestamp.toIso8601String(),
+      'deviceId': deviceId,
+      'status': 'pending', // pending, approved, rejected
+    };
+  }
+}

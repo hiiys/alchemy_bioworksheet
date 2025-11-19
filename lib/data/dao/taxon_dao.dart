@@ -1,9 +1,11 @@
 import '../db.dart';
 import '../models.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../services/change_tracking_service.dart';
 
 class TaxonDao {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final ChangeTrackingService _changeTracker = ChangeTrackingService();
 
   Future<int> insertTaxon(Taxon taxon) async {
     final db = await _dbHelper.database;
@@ -240,7 +242,7 @@ class TaxonDao {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
-      SELECT t.* FROM taxon t 
+      SELECT t.* FROM taxon t
       WHERE t.specimenType = ? AND NOT EXISTS (
         SELECT 1 FROM taxon c WHERE c.parentId = t.id
       )
@@ -248,5 +250,83 @@ class TaxonDao {
       [specimenType],
     );
     return List.generate(maps.length, (i) => Taxon.fromMap(maps[i]));
+  }
+
+  // Tracked versions - use these for user modifications to log changes
+
+  /// Insert a taxon and track the change for sync
+  Future<int> insertTaxonWithTracking(Taxon taxon) async {
+    final id = await insertTaxon(taxon);
+    final insertedTaxon = Taxon(
+      id: id,
+      parentId: taxon.parentId,
+      name: taxon.name,
+      rank: taxon.rank,
+      notes: taxon.notes,
+      specimenType: taxon.specimenType,
+    );
+    await _changeTracker.logCreate(insertedTaxon);
+    return id;
+  }
+
+  /// Update a taxon and track the change for sync
+  Future<int> updateTaxonWithTracking(Taxon taxon) async {
+    // Get the old taxon data before update
+    final oldTaxon = await getTaxonById(taxon.id!);
+    if (oldTaxon == null) {
+      throw Exception('Taxon not found: ${taxon.id}');
+    }
+
+    final result = await updateTaxon(taxon);
+    await _changeTracker.logUpdate(oldTaxon, taxon);
+    return result;
+  }
+
+  /// Delete a taxon and track the change for sync
+  Future<int> deleteTaxonWithTracking(int id) async {
+    // Get the taxon data before deletion
+    final taxon = await getTaxonById(id);
+    if (taxon == null) {
+      throw Exception('Taxon not found: $id');
+    }
+
+    final result = await deleteTaxon(id);
+    await _changeTracker.logDelete(taxon);
+    return result;
+  }
+
+  /// Upsert a taxon with tracking (for user registrations)
+  Future<Taxon> upsertTaxonWithTracking(
+    int? parentId,
+    String name, {
+    String? rank,
+    String? notes,
+    String? specimenType,
+  }) async {
+    final existing = await getTaxonByParentAndName(
+      parentId,
+      name,
+      specimenType: specimenType,
+    );
+    if (existing != null) {
+      return existing;
+    }
+    final id = await insertTaxonWithTracking(
+      Taxon(
+        parentId: parentId,
+        name: name,
+        rank: rank,
+        notes: notes,
+        specimenType: specimenType,
+      ),
+    );
+    return Taxon(
+      id: id,
+      parentId: parentId,
+      name: name,
+      rank: rank,
+      notes: notes,
+      specimenType: specimenType,
+    );
   }
 }

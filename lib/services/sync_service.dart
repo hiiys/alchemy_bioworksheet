@@ -14,7 +14,15 @@ class SyncService {
     try {
       print('Starting sync for $specimenType...');
 
-      // 1. Check if cloud is newer
+      // 1. Check if local database has any data for this specimen type
+      final localTaxa = await _taxonDao.getAllTaxaByType(specimenType);
+      final isLocalEmpty = localTaxa.isEmpty;
+
+      if (isLocalEmpty) {
+        print('Local database is empty for $specimenType, forcing sync from cloud');
+      }
+
+      // 2. Check if cloud is newer (skip if local is empty)
       final prefs = await SharedPreferences.getInstance();
       final lastSyncKey = 'last_sync_$specimenType';
       final lastSyncMillis = prefs.getInt(lastSyncKey);
@@ -22,17 +30,19 @@ class SyncService {
           ? DateTime.fromMillisecondsSinceEpoch(lastSyncMillis)
           : null;
 
-      final isNewer = await _firebaseService.isCloudNewer(
-        specimenType,
-        lastSync,
-      );
-
-      if (!isNewer && lastSync != null) {
-        print('Local taxonomy is up to date');
-        return SyncResult.success(
-          message: 'Already up to date',
-          taxaSynced: 0,
+      if (!isLocalEmpty) {
+        final isNewer = await _firebaseService.isCloudNewer(
+          specimenType,
+          lastSync,
         );
+
+        if (!isNewer && lastSync != null) {
+          print('Local taxonomy is up to date');
+          return SyncResult.success(
+            message: 'Already up to date',
+            taxaSynced: 0,
+          );
+        }
       }
 
       // 2. Download from cloud

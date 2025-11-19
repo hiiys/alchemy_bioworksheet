@@ -1,4 +1,4 @@
-package com.example.macrobenthos_counter
+package com.example.alchemy_bioworksheet
 
 import io.flutter.embedding.android.FlutterActivity
 

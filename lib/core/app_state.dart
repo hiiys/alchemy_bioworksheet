@@ -66,17 +66,17 @@ class AppState with ChangeNotifier {
   }
 
   Future<void> addTaxon(Taxon taxon) async {
-    await _taxonDao.insertTaxon(taxon);
+    await _taxonDao.insertTaxonWithTracking(taxon);
     await _loadTaxa();
   }
 
   Future<void> updateTaxon(Taxon taxon) async {
-    await _taxonDao.updateTaxon(taxon);
+    await _taxonDao.updateTaxonWithTracking(taxon);
     await _loadTaxa();
   }
 
   Future<void> deleteTaxon(int taxonId) async {
-    await _taxonDao.deleteTaxon(taxonId);
+    await _taxonDao.deleteTaxonWithTracking(taxonId);
     await _loadTaxa();
   }
 

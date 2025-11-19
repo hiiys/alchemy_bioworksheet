@@ -1,5 +1,5 @@
-name: macrobenthos_counter
-description: "A new Flutter project."
+name: alchemy_bioworksheet
+description: "Biological specimen counting and analysis app."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -50,6 +50,7 @@ dependencies:
   firebase_auth: ^5.3.3
   firebase_storage: ^12.3.7
   connectivity_plus: ^6.1.0
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "369177608730",
-    "project_id": "macrobenthos-taxonomy-prod",
-    "storage_bucket": "macrobenthos-taxonomy-prod.firebasestorage.app"
+    "project_number": "126522184124",
+    "project_id": "alchemy-bioworksheet",
+    "storage_bucket": "alchemy-bioworksheet.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:369177608730:android:46ddb7b1160e53758247a3",
+        "mobilesdk_app_id": "1:126522184124:android:6721575d1e4aa5c7e29bb9",
         "android_client_info": {
           "package_name": "com.example.alchemy_bioworksheet"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDoTrCljUWhprJ-6CotyBvJmNu10UG__r4"
+          "current_key": "AIzaSyBIsTfSJrzOs9crnF8ew2MgJg1Xt_FoiWI"
         }
       ],
       "services": {

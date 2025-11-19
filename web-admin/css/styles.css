@@ -26,9 +26,16 @@ body {
     text-align: center;
 }
 
+.login-logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
 .login-container h1 {
     color: #2196F3;
     margin-bottom: 10px;
+    font-size: 20px;
 }
 
 .login-container p {
@@ -380,6 +387,334 @@ header h1 {
     border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    padding: 8px 16px;
+    background: #fff;
+    color: #2196F3;
+    border: 1px solid #2196F3;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #e3f2fd;
+}
+
+/* Import Modal Specific Styles */
+.modal-wide {
+    width: 600px;
+    max-width: 95%;
+}
+
+.csv-format-info {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 13px;
+}
+
+.csv-format-info code {
+    display: block;
+    background: #e0e0e0;
+    padding: 8px;
+    border-radius: 3px;
+    margin: 8px 0;
+    font-family: monospace;
+}
+
+.csv-format-info ul {
+    margin: 10px 0 0 20px;
+    padding: 0;
+}
+
+.csv-format-info li {
+    margin: 5px 0;
+}
+
+.file-upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+.file-upload-area:hover {
+    border-color: #2196F3;
+}
+
+.file-upload-area input[type="file"] {
+    display: none;
+}
+
+.file-label {
+    cursor: pointer;
+    color: #2196F3;
+    font-weight: 500;
+}
+
+.csv-preview {
+    margin-bottom: 15px;
+}
+
+.csv-preview h4 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+#csv-preview-table {
+    max-height: 200px;
+    overflow: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#csv-preview-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+#csv-preview-table th,
+#csv-preview-table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+#csv-preview-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+#csv-preview-table tr:hover {
+    background: #f9f9f9;
+}
+
+.import-errors {
+    background: #ffebee;
+    border: 1px solid #f44336;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    color: #c62828;
+    font-size: 13px;
+}
+
+.import-errors ul {
+    margin: 5px 0 0 20px;
+    padding: 0;
+}
+
+/* Help Modal Styles */
+.help-section {
+    margin-bottom: 20px;
+}
+
+.help-section h4 {
+    color: #2196F3;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.help-section p {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.help-section ul {
+    margin: 0 0 0 20px;
+    padding: 0;
+}
+
+.help-section li {
+    margin: 5px 0;
+    color: #555;
+}
+
+.help-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0;
+}
+
+.help-table th,
+.help-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.help-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.help-table tr:nth-child(even) {
+    background: #fafafa;
+}
+
+/* Badge Styles */
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #f44336;
+    color: white;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+/* Pending Changes Styles */
+.filter-bar {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-bar select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.pending-changes-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.pending-changes-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.pending-changes-table th,
+.pending-changes-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.pending-changes-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.pending-changes-table tr:hover {
+    background: #f9f9f9;
+}
+
+.change-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.action-create {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.action-update {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.action-delete {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.change-details {
+    font-size: 12px;
+    color: #666;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-approve {
+    padding: 4px 8px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.btn-approve:hover {
+    background: #388E3C;
+}
+
+.btn-reject {
+    padding: 4px 8px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.btn-reject:hover {
+    background: #d32f2f;
+}
+
+#review-close-btn {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#review-close-btn:hover {
+    background: #f5f5f5;
+}
+
+/* Status badges for changes */
+.change-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+.status-pending {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.status-approved {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-rejected {
+    background: #ffebee;
+    color: #c62828;
 }
 
 /* Footer */

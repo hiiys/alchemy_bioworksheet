@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/app_state.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
-import '../../services/sync_service.dart';
 import '../widgets/app_scaffold.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,126 +17,6 @@ class _HomePageState extends State<HomePage> {
   int? _sortColumnIndex;
   bool _sortAscending = true;
   bool _selectAll = false;
-  bool _isSyncing = false;
-  DateTime? _lastSyncTime;
-  final SyncService _syncService = SyncService();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLastSyncTime();
-  }
-
-  Future<void> _loadLastSyncTime() async {
-    // Load last sync time for any specimen type to show general sync status
-    final macroTime = await _syncService.getLastSyncTime('Macrobenthos');
-    final zooTime = await _syncService.getLastSyncTime('Zooplankton');
-    final phytoTime = await _syncService.getLastSyncTime('Phytoplankton');
-
-    // Use the most recent sync time
-    DateTime? latest;
-    for (final time in [macroTime, zooTime, phytoTime]) {
-      if (time != null && (latest == null || time.isAfter(latest))) {
-        latest = time;
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _lastSyncTime = latest;
-      });
-    }
-  }
-
-  Future<void> _syncTaxonomies() async {
-    setState(() {
-      _isSyncing = true;
-    });
-
-    try {
-      final results = await _syncService.syncAllTaxonomies();
-
-      if (!mounted) return;
-
-      // Build result message
-      final messages = <String>[];
-      int totalSynced = 0;
-      bool hasError = false;
-
-      for (final entry in results.entries) {
-        if (entry.value.success) {
-          if (entry.value.taxaSynced > 0) {
-            messages.add('${entry.key}: ${entry.value.taxaSynced} taxa');
-            totalSynced += entry.value.taxaSynced;
-          } else {
-            messages.add('${entry.key}: Up to date');
-          }
-        } else {
-          messages.add('${entry.key}: ${entry.value.message}');
-          hasError = true;
-        }
-      }
-
-      // Show result dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(hasError ? 'Sync Completed with Errors' : 'Sync Completed'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (totalSynced > 0)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Total taxa synced: $totalSynced',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ...messages.map((m) => Text(m)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-
-      // Reload last sync time
-      await _loadLastSyncTime();
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sync failed: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSyncing = false;
-        });
-      }
-    }
-  }
-
-  String _formatSyncTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inHours < 1) {
-      return '${diff.inMinutes}m ago';
-    } else if (diff.inDays < 1) {
-      return '${diff.inHours}h ago';
-    } else {
-      return '${time.day}/${time.month}/${time.year}';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,26 +27,6 @@ class _HomePageState extends State<HomePage> {
     return AppScaffold(
       title: AppPageTitles.home,
       actions: [
-        // Sync button
-        _isSyncing
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-            : IconButton(
-                icon: const Icon(Icons.cloud_sync),
-                tooltip: _lastSyncTime != null
-                    ? 'Sync Taxonomy (Last: ${_formatSyncTime(_lastSyncTime!)})'
-                    : 'Sync Taxonomy',
-                onPressed: _syncTaxonomies,
-              ),
         IconButton(
           icon: const Icon(Icons.delete_forever),
           tooltip: 'Reset Data',

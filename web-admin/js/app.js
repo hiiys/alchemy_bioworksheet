@@ -420,3 +420,767 @@ function setStatus(message) {
 
 // Initialize rank options
 updateRankOptions();
+
+// CSV Import/Export functionality
+const importCsvBtn = document.getElementById('import-csv-btn');
+const exportCsvBtn = document.getElementById('export-csv-btn');
+const importModal = document.getElementById('import-modal');
+const importCancelBtn = document.getElementById('import-cancel-btn');
+const importUploadBtn = document.getElementById('import-upload-btn');
+const csvFileInput = document.getElementById('csv-file-input');
+const csvPreview = document.getElementById('csv-preview');
+const csvPreviewTable = document.getElementById('csv-preview-table');
+const csvRowCount = document.getElementById('csv-row-count');
+const importErrors = document.getElementById('import-errors');
+const importSpecimenType = document.getElementById('import-specimen-type');
+
+let parsedCsvData = [];
+
+// Open import modal
+importCsvBtn.addEventListener('click', () => {
+    importModal.classList.remove('hidden');
+    importSpecimenType.textContent = currentSpecimenType;
+    resetImportModal();
+});
+
+// Close import modal
+importCancelBtn.addEventListener('click', () => {
+    importModal.classList.add('hidden');
+    resetImportModal();
+});
+
+// Reset import modal state
+function resetImportModal() {
+    csvFileInput.value = '';
+    csvPreview.classList.add('hidden');
+    importErrors.classList.add('hidden');
+    importUploadBtn.disabled = true;
+    parsedCsvData = [];
+}
+
+// Handle file selection
+csvFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        readCsvFile(file);
+    }
+});
+
+// Read and parse CSV file
+function readCsvFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target.result;
+        parseCsv(text);
+    };
+    reader.readAsText(file);
+}
+
+// Parse CSV text
+function parseCsv(text) {
+    const lines = text.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) {
+        showImportError('CSV file must have a header row and at least one data row.');
+        return;
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const requiredHeaders = ['id', 'name', 'rank'];
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+    if (missingHeaders.length > 0) {
+        showImportError(`Missing required columns: ${missingHeaders.join(', ')}`);
+        return;
+    }
+
+    const errors = [];
+    parsedCsvData = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length !== headers.length) {
+            errors.push(`Row ${i + 1}: Column count mismatch (expected ${headers.length}, got ${values.length})`);
+            continue;
+        }
+
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index].trim();
+        });
+
+        // Validate row
+        if (!row.id || isNaN(parseInt(row.id))) {
+            errors.push(`Row ${i + 1}: Invalid or missing ID`);
+            continue;
+        }
+        if (!row.name) {
+            errors.push(`Row ${i + 1}: Missing name`);
+            continue;
+        }
+        if (!row.rank) {
+            errors.push(`Row ${i + 1}: Missing rank`);
+            continue;
+        }
+
+        // Validate rank against definitions
+        const validRanks = rankDefinitions[currentSpecimenType];
+        if (!validRanks.includes(row.rank)) {
+            errors.push(`Row ${i + 1}: Invalid rank "${row.rank}". Valid ranks: ${validRanks.join(', ')}`);
+            continue;
+        }
+
+        parsedCsvData.push({
+            id: parseInt(row.id),
+            parentId: row.parentid ? parseInt(row.parentid) : null,
+            name: row.name,
+            rank: row.rank,
+            notes: row.notes || null
+        });
+    }
+
+    if (errors.length > 0 && parsedCsvData.length === 0) {
+        showImportError('All rows have errors:<ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>');
+        return;
+    }
+
+    if (errors.length > 0) {
+        importErrors.innerHTML = `<strong>Warning:</strong> ${errors.length} row(s) skipped due to errors:<ul>` +
+            errors.slice(0, 5).map(e => `<li>${e}</li>`).join('') +
+            (errors.length > 5 ? `<li>...and ${errors.length - 5} more</li>` : '') + '</ul>';
+        importErrors.classList.remove('hidden');
+    } else {
+        importErrors.classList.add('hidden');
+    }
+
+    // Show preview
+    showCsvPreview();
+    importUploadBtn.disabled = false;
+}
+
+// Parse a single CSV line (handling quoted values)
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+// Show import error
+function showImportError(message) {
+    importErrors.innerHTML = message;
+    importErrors.classList.remove('hidden');
+    csvPreview.classList.add('hidden');
+    importUploadBtn.disabled = true;
+}
+
+// Show CSV preview table
+function showCsvPreview() {
+    csvRowCount.textContent = parsedCsvData.length;
+
+    let html = '<table><thead><tr><th>ID</th><th>Parent ID</th><th>Name</th><th>Rank</th><th>Notes</th></tr></thead><tbody>';
+
+    const previewRows = parsedCsvData.slice(0, 10);
+    previewRows.forEach(row => {
+        html += `<tr>
+            <td>${row.id}</td>
+            <td>${row.parentId || '-'}</td>
+            <td>${row.name}</td>
+            <td>${row.rank}</td>
+            <td>${row.notes || '-'}</td>
+        </tr>`;
+    });
+
+    if (parsedCsvData.length > 10) {
+        html += `<tr><td colspan="5" style="text-align: center; color: #666;">... and ${parsedCsvData.length - 10} more rows</td></tr>`;
+    }
+
+    html += '</tbody></table>';
+    csvPreviewTable.innerHTML = html;
+    csvPreview.classList.remove('hidden');
+}
+
+// Handle import upload
+importUploadBtn.addEventListener('click', async () => {
+    if (parsedCsvData.length === 0) return;
+
+    const confirmed = confirm(`Import ${parsedCsvData.length} taxa to ${currentSpecimenType}? Existing taxa with matching IDs will be updated.`);
+    if (!confirmed) return;
+
+    setStatus('Importing...');
+    importUploadBtn.disabled = true;
+
+    try {
+        const taxaRef = db.collection('taxonomies').doc(currentSpecimenType).collection('taxa');
+        const batch = db.batch();
+        let count = 0;
+
+        for (const taxon of parsedCsvData) {
+            const docRef = taxaRef.doc(taxon.id.toString());
+            batch.set(docRef, {
+                parentId: taxon.parentId,
+                name: taxon.name,
+                rank: taxon.rank,
+                notes: taxon.notes,
+                specimenType: currentSpecimenType
+            });
+            count++;
+
+            // Firestore batch limit is 500
+            if (count >= 500) {
+                await batch.commit();
+                count = 0;
+            }
+        }
+
+        if (count > 0) {
+            await batch.commit();
+        }
+
+        // Update metadata
+        await db.collection('taxonomies').doc(currentSpecimenType).set({
+            lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+            modifiedBy: auth.currentUser.email
+        }, { merge: true });
+
+        importModal.classList.add('hidden');
+        setStatus(`Imported ${parsedCsvData.length} taxa successfully`);
+        loadTaxonomy();
+    } catch (error) {
+        alert('Error importing: ' + error.message);
+        setStatus('Error importing');
+        importUploadBtn.disabled = false;
+    }
+});
+
+// Export to CSV
+exportCsvBtn.addEventListener('click', () => {
+    if (allTaxa.length === 0) {
+        alert('No taxa to export');
+        return;
+    }
+
+    // Create CSV content
+    let csv = 'id,parentId,name,rank,notes\n';
+
+    allTaxa.forEach(taxon => {
+        const notes = taxon.notes ? `"${taxon.notes.replace(/"/g, '""')}"` : '';
+        csv += `${taxon.id},${taxon.parentId || ''},${taxon.name},${taxon.rank},${notes}\n`;
+    });
+
+    // Download file
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentSpecimenType}_taxonomy.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setStatus(`Exported ${allTaxa.length} taxa to CSV`);
+});
+
+// Help modal functionality
+const helpBtn = document.getElementById('help-btn');
+const helpModal = document.getElementById('help-modal');
+const helpCloseBtn = document.getElementById('help-close-btn');
+const downloadSampleBtn = document.getElementById('download-sample-btn');
+
+// Open help modal
+helpBtn.addEventListener('click', () => {
+    helpModal.classList.remove('hidden');
+});
+
+// Close help modal
+helpCloseBtn.addEventListener('click', () => {
+    helpModal.classList.add('hidden');
+});
+
+// Download sample CSV
+downloadSampleBtn.addEventListener('click', () => {
+    let sampleCsv = '';
+
+    if (currentSpecimenType === 'Macrobenthos') {
+        sampleCsv = `id,parentId,name,rank,notes
+1,,Annelida,Phylum,Segmented worms
+2,1,Polychaeta,Class,Marine bristle worms
+3,2,Phyllodocida,Order,
+4,3,Nereididae,Family,Ragworms
+5,4,Nereis,Genus,
+6,5,Nereis diversicolor,Species,Common ragworm
+7,,Arthropoda,Phylum,Jointed-legged invertebrates
+8,7,Malacostraca,Class,Crustaceans
+9,8,Decapoda,Order,
+10,9,Portunidae,Family,Swimming crabs
+11,10,Portunus,Genus,
+12,11,Portunus pelagicus,Species,Blue swimming crab
+13,,Mollusca,Phylum,Soft-bodied invertebrates
+14,13,Bivalvia,Class,Two-shelled molluscs
+15,14,Veneroida,Order,
+16,15,Veneridae,Family,Venus clams
+17,16,Meretrix,Genus,
+18,17,Meretrix meretrix,Species,Asiatic hard clam`;
+    } else if (currentSpecimenType === 'Zooplankton') {
+        sampleCsv = `id,parentId,name,rank,notes
+1000001,,Arthropoda,Phylum,Jointed-legged invertebrates
+1000002,1000001,Maxillopoda,Class,Copepods and relatives
+1000003,1000002,Calanoida,Order,Calanoid copepods
+1000004,1000003,Calanidae,Family,
+1000005,1000004,Calanus,Genus,
+1000006,1000005,Calanus finmarchicus,Species,Common calanoid copepod
+1000007,1000002,Cyclopoida,Order,Cyclopoid copepods
+1000008,1000007,Oithonidae,Family,
+1000009,1000008,Oithona,Genus,
+1000010,1000009,Oithona similis,Species,Small cyclopoid copepod
+1000011,,Cnidaria,Phylum,Jellyfish and hydrozoans
+1000012,1000011,Hydrozoa,Class,Hydroids
+1000013,1000012,Siphonophora,Order,Colonial hydrozoans
+1000014,1000013,Diphyidae,Family,`;
+    } else if (currentSpecimenType === 'Phytoplankton') {
+        sampleCsv = `id,parentId,name,rank,notes
+2000001,,Bacillariophyta,Division,Diatoms
+2000002,2000001,Bacillariophyceae,Class,Pennate diatoms
+2000003,2000002,Naviculales,Order,
+2000004,2000003,Naviculaceae,Family,
+2000005,2000004,Navicula,Genus,
+2000006,2000005,Navicula radiosa,Species,Common pennate diatom
+2000007,2000001,Coscinodiscophyceae,Class,Centric diatoms
+2000008,2000007,Thalassiosirales,Order,
+2000009,2000008,Thalassiosiraceae,Family,
+2000010,2000009,Thalassiosira,Genus,
+2000011,2000010,Thalassiosira pseudonana,Species,Model centric diatom
+2000012,,Dinophyta,Division,Dinoflagellates
+2000013,2000012,Dinophyceae,Class,
+2000014,2000013,Peridiniales,Order,
+2000015,2000014,Peridiniaceae,Family,`;
+    }
+
+    // Download file
+    const blob = new Blob([sampleCsv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sample_${currentSpecimenType.toLowerCase()}_taxonomy.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setStatus(`Downloaded sample CSV for ${currentSpecimenType}`);
+});
+
+// Close modals when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        helpModal.classList.add('hidden');
+    }
+    if (e.target === importModal) {
+        importModal.classList.add('hidden');
+        resetImportModal();
+    }
+    if (e.target === addModal) {
+        addModal.classList.add('hidden');
+    }
+    if (e.target === reviewChangesModal) {
+        reviewChangesModal.classList.add('hidden');
+    }
+});
+
+// Pending Changes Review functionality
+const reviewChangesBtn = document.getElementById('review-changes-btn');
+const reviewChangesModal = document.getElementById('review-changes-modal');
+const reviewCloseBtn = document.getElementById('review-close-btn');
+const pendingChangesList = document.getElementById('pending-changes-list');
+const changeTypeFilter = document.getElementById('change-type-filter');
+const changeStatusFilter = document.getElementById('change-status-filter');
+const approveAllBtn = document.getElementById('approve-all-btn');
+const rejectAllBtn = document.getElementById('reject-all-btn');
+const pendingCountBadge = document.getElementById('pending-count-badge');
+
+let allPendingChanges = [];
+
+// Load pending changes count on auth state change
+const originalAuthCallback = auth.onAuthStateChanged;
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        loadPendingChangesCount();
+    }
+});
+
+// Load pending changes count (only counts pending status)
+async function loadPendingChangesCount() {
+    try {
+        const snapshot = await db.collection('pending_changes')
+            .where('status', '==', 'pending')
+            .get();
+        const count = snapshot.size;
+
+        if (count > 0) {
+            pendingCountBadge.textContent = count;
+            pendingCountBadge.classList.remove('hidden');
+        } else {
+            pendingCountBadge.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading pending changes count:', error);
+    }
+}
+
+// Open review changes modal
+reviewChangesBtn.addEventListener('click', () => {
+    reviewChangesModal.classList.remove('hidden');
+    loadPendingChanges();
+});
+
+// Close review changes modal
+reviewCloseBtn.addEventListener('click', () => {
+    reviewChangesModal.classList.add('hidden');
+});
+
+// Filter changes by type
+changeTypeFilter.addEventListener('change', () => {
+    renderPendingChanges();
+});
+
+// Filter changes by status
+changeStatusFilter.addEventListener('change', () => {
+    renderPendingChanges();
+});
+
+// Load pending changes from Firestore
+async function loadPendingChanges() {
+    pendingChangesList.innerHTML = '<p class="loading">Loading pending changes...</p>';
+
+    try {
+        const snapshot = await db.collection('pending_changes')
+            .orderBy('timestamp', 'desc')
+            .get();
+
+        allPendingChanges = snapshot.docs.map(doc => ({
+            docId: doc.id,
+            ...doc.data()
+        }));
+
+        renderPendingChanges();
+
+        // Update buttons state
+        const hasChanges = allPendingChanges.length > 0;
+        approveAllBtn.disabled = !hasChanges;
+        rejectAllBtn.disabled = !hasChanges;
+
+    } catch (error) {
+        pendingChangesList.innerHTML = `<p class="error">Error loading changes: ${error.message}</p>`;
+    }
+}
+
+// Render pending changes list
+function renderPendingChanges() {
+    const filterType = changeTypeFilter.value;
+    const filterStatus = changeStatusFilter.value;
+
+    let filteredChanges = allPendingChanges;
+
+    // Filter by specimen type
+    if (filterType !== 'all') {
+        filteredChanges = filteredChanges.filter(c => c.specimenType === filterType);
+    }
+
+    // Filter by status
+    if (filterStatus !== 'all') {
+        filteredChanges = filteredChanges.filter(c => (c.status || 'pending') === filterStatus);
+    }
+
+    if (filteredChanges.length === 0) {
+        pendingChangesList.innerHTML = '<p class="loading">No changes found matching filters.</p>';
+        approveAllBtn.disabled = true;
+        rejectAllBtn.disabled = true;
+        return;
+    }
+
+    // Enable bulk buttons only if there are pending changes in the filtered list
+    const hasPendingChanges = filteredChanges.some(c => (c.status || 'pending') === 'pending');
+    approveAllBtn.disabled = !hasPendingChanges;
+    rejectAllBtn.disabled = !hasPendingChanges;
+
+    let html = '<table class="pending-changes-table"><thead><tr>';
+    html += '<th>Type</th><th>Action</th><th>Specimen Type</th><th>Taxon</th><th>Device</th><th>Timestamp</th><th>Status</th><th>Actions</th>';
+    html += '</tr></thead><tbody>';
+
+    filteredChanges.forEach(change => {
+        const changeData = change.newData ? JSON.parse(change.newData) : (change.oldData ? JSON.parse(change.oldData) : {});
+        const taxonName = changeData.name || 'Unknown';
+        const status = change.status || 'pending';
+        let timestamp = 'Unknown';
+        if (change.timestamp) {
+            // Handle different timestamp formats
+            if (change.timestamp.toDate) {
+                // Firestore Timestamp object
+                timestamp = change.timestamp.toDate().toLocaleString();
+            } else if (change.timestamp.seconds) {
+                // Firestore Timestamp as plain object
+                timestamp = new Date(change.timestamp.seconds * 1000).toLocaleString();
+            } else if (typeof change.timestamp === 'string') {
+                // ISO 8601 string format
+                timestamp = new Date(change.timestamp).toLocaleString();
+            } else if (change.timestamp instanceof Date) {
+                timestamp = change.timestamp.toLocaleString();
+            }
+        }
+
+        let actionClass = '';
+        if (change.changeType === 'create') actionClass = 'action-create';
+        else if (change.changeType === 'update') actionClass = 'action-update';
+        else if (change.changeType === 'delete') actionClass = 'action-delete';
+
+        let statusClass = '';
+        if (status === 'approved') statusClass = 'status-approved';
+        else if (status === 'rejected') statusClass = 'status-rejected';
+        else statusClass = 'status-pending';
+
+        html += `<tr data-doc-id="${change.docId}">
+            <td><span class="change-type ${actionClass}">${change.changeType}</span></td>
+            <td class="change-details">`;
+
+        if (change.changeType === 'update' && change.oldData && change.newData) {
+            const oldData = JSON.parse(change.oldData);
+            const newData = JSON.parse(change.newData);
+            if (oldData.name !== newData.name) {
+                html += `Name: ${oldData.name} → ${newData.name}<br>`;
+            }
+            if (oldData.rank !== newData.rank) {
+                html += `Rank: ${oldData.rank} → ${newData.rank}<br>`;
+            }
+            if (oldData.parentId !== newData.parentId) {
+                html += `Parent: ${oldData.parentId || 'root'} → ${newData.parentId || 'root'}`;
+            }
+        } else if (change.changeType === 'create') {
+            html += `New: ${taxonName} (${changeData.rank || 'Unknown'})`;
+        } else if (change.changeType === 'delete') {
+            html += `Delete: ${taxonName}`;
+        }
+
+        html += `</td>
+            <td>${change.specimenType}</td>
+            <td>${taxonName}</td>
+            <td>${change.deviceId || 'Unknown'}</td>
+            <td>${timestamp}</td>
+            <td><span class="change-status ${statusClass}">${status}</span></td>
+            <td class="action-buttons">`;
+
+        if (status === 'pending') {
+            html += `<button class="btn-approve" onclick="approveChange('${change.docId}')">Approve</button>
+                <button class="btn-reject" onclick="rejectChange('${change.docId}')">Reject</button>`;
+        } else {
+            html += `<span style="color: #999; font-size: 11px;">${status === 'approved' ? 'Applied' : 'Dismissed'}</span>`;
+        }
+
+        html += `</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    pendingChangesList.innerHTML = html;
+}
+
+// Approve a single change
+async function approveChange(docId) {
+    const change = allPendingChanges.find(c => c.docId === docId);
+    if (!change) return;
+
+    setStatus('Applying change...');
+
+    try {
+        const taxaRef = db.collection('taxonomies').doc(change.specimenType).collection('taxa');
+
+        if (change.changeType === 'create' || change.changeType === 'update') {
+            const newData = JSON.parse(change.newData);
+            await taxaRef.doc(newData.id.toString()).set({
+                parentId: newData.parentId || null,
+                name: newData.name,
+                rank: newData.rank,
+                notes: newData.notes || null,
+                specimenType: change.specimenType
+            });
+        } else if (change.changeType === 'delete') {
+            const oldData = JSON.parse(change.oldData);
+            await taxaRef.doc(oldData.id.toString()).delete();
+        }
+
+        // Update metadata
+        await db.collection('taxonomies').doc(change.specimenType).set({
+            lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+            modifiedBy: auth.currentUser.email
+        }, { merge: true });
+
+        // Update the change status to approved (keep for logging)
+        await db.collection('pending_changes').doc(docId).update({
+            status: 'approved',
+            reviewedBy: auth.currentUser.email,
+            reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Refresh the list
+        await loadPendingChanges();
+        await loadPendingChangesCount();
+
+        // Reload taxonomy if current type matches
+        if (change.specimenType === currentSpecimenType) {
+            loadTaxonomy();
+        }
+
+        setStatus('Change approved successfully');
+    } catch (error) {
+        alert('Error approving change: ' + error.message);
+        setStatus('Error approving change');
+    }
+}
+
+// Reject a single change
+async function rejectChange(docId) {
+    if (!confirm('Reject this change? It will be marked as rejected but kept in the log.')) return;
+
+    setStatus('Rejecting change...');
+
+    try {
+        // Update status to rejected (keep for logging)
+        await db.collection('pending_changes').doc(docId).update({
+            status: 'rejected',
+            reviewedBy: auth.currentUser.email,
+            reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await loadPendingChanges();
+        await loadPendingChangesCount();
+
+        setStatus('Change rejected');
+    } catch (error) {
+        alert('Error rejecting change: ' + error.message);
+        setStatus('Error rejecting change');
+    }
+}
+
+// Approve all filtered changes
+approveAllBtn.addEventListener('click', async () => {
+    const filterType = changeTypeFilter.value;
+    let filteredChanges = allPendingChanges;
+
+    // Filter by specimen type
+    if (filterType !== 'all') {
+        filteredChanges = filteredChanges.filter(c => c.specimenType === filterType);
+    }
+
+    // Only process pending changes
+    const pendingChanges = filteredChanges.filter(c => (c.status || 'pending') === 'pending');
+
+    if (pendingChanges.length === 0) return;
+
+    if (!confirm(`Approve all ${pendingChanges.length} pending changes?`)) return;
+
+    setStatus('Approving all changes...');
+    approveAllBtn.disabled = true;
+
+    let approved = 0;
+    let errors = 0;
+
+    for (const change of pendingChanges) {
+        try {
+            const taxaRef = db.collection('taxonomies').doc(change.specimenType).collection('taxa');
+
+            if (change.changeType === 'create' || change.changeType === 'update') {
+                const newData = JSON.parse(change.newData);
+                await taxaRef.doc(newData.id.toString()).set({
+                    parentId: newData.parentId || null,
+                    name: newData.name,
+                    rank: newData.rank,
+                    notes: newData.notes || null,
+                    specimenType: change.specimenType
+                });
+            } else if (change.changeType === 'delete') {
+                const oldData = JSON.parse(change.oldData);
+                await taxaRef.doc(oldData.id.toString()).delete();
+            }
+
+            // Update status to approved
+            await db.collection('pending_changes').doc(change.docId).update({
+                status: 'approved',
+                reviewedBy: auth.currentUser.email,
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            approved++;
+        } catch (error) {
+            console.error('Error approving change:', error);
+            errors++;
+        }
+    }
+
+    // Update metadata for affected specimen types
+    const affectedTypes = [...new Set(pendingChanges.map(c => c.specimenType))];
+    for (const type of affectedTypes) {
+        await db.collection('taxonomies').doc(type).set({
+            lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+            modifiedBy: auth.currentUser.email
+        }, { merge: true });
+    }
+
+    await loadPendingChanges();
+    await loadPendingChangesCount();
+    loadTaxonomy();
+
+    setStatus(`Approved ${approved} changes${errors > 0 ? `, ${errors} errors` : ''}`);
+});
+
+// Reject all filtered changes
+rejectAllBtn.addEventListener('click', async () => {
+    const filterType = changeTypeFilter.value;
+    let filteredChanges = allPendingChanges;
+
+    // Filter by specimen type
+    if (filterType !== 'all') {
+        filteredChanges = filteredChanges.filter(c => c.specimenType === filterType);
+    }
+
+    // Only process pending changes
+    const pendingChanges = filteredChanges.filter(c => (c.status || 'pending') === 'pending');
+
+    if (pendingChanges.length === 0) return;
+
+    if (!confirm(`Reject all ${pendingChanges.length} pending changes? They will be marked as rejected but kept in the log.`)) return;
+
+    setStatus('Rejecting all changes...');
+    rejectAllBtn.disabled = true;
+
+    let rejected = 0;
+
+    for (const change of pendingChanges) {
+        try {
+            // Update status to rejected
+            await db.collection('pending_changes').doc(change.docId).update({
+                status: 'rejected',
+                reviewedBy: auth.currentUser.email,
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            rejected++;
+        } catch (error) {
+            console.error('Error rejecting change:', error);
+        }
+    }
+
+    await loadPendingChanges();
+    await loadPendingChangesCount();
+
+    setStatus(`Rejected ${rejected} changes`);
+});

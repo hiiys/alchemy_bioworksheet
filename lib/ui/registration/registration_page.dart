@@ -13,6 +13,8 @@ import '../../data/models.dart';
 import '../../data/dao/taxon_dao.dart';
 import '../../data/dao/rank_definition_dao.dart';
 import '../../data/db.dart';
+import '../../services/sync_service.dart';
+import '../../services/change_tracking_service.dart';
 import '../widgets/app_scaffold.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -28,6 +30,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final Set<int> _selectedLeafIds = {};
   bool _selectAll = false;
   String _viewSpecimenType = 'Macrobenthos';
+  bool _isSyncing = false;
+  DateTime? _lastSyncTime;
+  final SyncService _syncService = SyncService();
+  final ChangeTrackingService _changeTracker = ChangeTrackingService();
+  bool _isUploading = false;
+  int _pendingChangesCount = 0;
 
   @override
   void dispose() {
@@ -38,6 +46,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void initState() {
     super.initState();
     _loadLastModified();
+    _loadLastSyncTime();
+    _loadPendingChangesCount();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final appState = Provider.of<AppState>(context, listen: false);
       _viewSpecimenType = appState.activeSample?.sampleType ?? 'Macrobenthos';
@@ -74,16 +84,67 @@ class _RegistrationPageState extends State<RegistrationPage> {
             onPressed: _showDeleteTaxaDialog,
             tooltip: 'Delete Taxa',
           ),
-          IconButton(
-            icon: const Icon(Icons.upload),
-            onPressed: _showImportDialog,
-            tooltip: 'Import CSV',
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: _exportRegistrationCsv,
-            tooltip: 'Export CSV',
-          ),
+          _isSyncing
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.cloud_download),
+                  tooltip: _lastSyncTime != null
+                      ? 'Download Taxonomy (Last: ${_formatSyncTime(_lastSyncTime!)})'
+                      : 'Download Taxonomy',
+                  onPressed: _syncTaxonomies,
+                ),
+          _isUploading
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.cloud_upload),
+                      tooltip: _pendingChangesCount > 0
+                          ? 'Upload Changes ($_pendingChangesCount pending)'
+                          : 'Upload Changes',
+                      onPressed: _uploadPendingChanges,
+                    ),
+                    if (_pendingChangesCount > 0)
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '$_pendingChangesCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: _deleteSelectedRegistrations,
@@ -192,7 +253,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       (b.name).toLowerCase(),
                     ),
                   );
-            final rankOrder = ranks.map((e) => e.toLowerCase()).toList();
+            final rankOrder = ranks.map((e) => e.toLowerCase()).toList().cast<String>();
             final columns = [
               if (_canModify) const DataColumn(label: Text('Select')),
               const DataColumn(label: Text('Unique ID')),
@@ -755,11 +816,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     await prefs.setInt('taxa_last_modified', now.millisecondsSinceEpoch);
+    await _loadPendingChangesCount();
     setState(() => _lastModified = now);
   }
 
   String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   String _capitalize(String s) =>
@@ -1239,5 +1302,89 @@ class _RegistrationPageState extends State<RegistrationPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('All ${_viewSpecimenType} registrations deleted')),
     );
+  }
+
+  Future<void> _loadLastSyncTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final millis = prefs.getInt('last_sync_time');
+    if (millis != null) {
+      setState(
+        () => _lastSyncTime = DateTime.fromMillisecondsSinceEpoch(millis),
+      );
+    }
+  }
+
+  Future<void> _syncTaxonomies() async {
+    setState(() => _isSyncing = true);
+    try {
+      final results = await _syncService.syncAllTaxonomies();
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      await prefs.setInt('last_sync_time', now.millisecondsSinceEpoch);
+      setState(() {
+        _lastSyncTime = now;
+        _isSyncing = false;
+      });
+      final appState = Provider.of<AppState>(context, listen: false);
+      await appState.reloadTaxa();
+      await _setTaxaModifiedNow();
+      final macroCount = results['Macrobenthos']?.taxaSynced ?? 0;
+      final zooCount = results['Zooplankton']?.taxaSynced ?? 0;
+      final phytoCount = results['Phytoplankton']?.taxaSynced ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Sync complete: $macroCount Macrobenthos, '
+            '$zooCount Zooplankton, '
+            '$phytoCount Phytoplankton taxa',
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isSyncing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sync failed: $e')),
+      );
+    }
+  }
+
+  String _formatSyncTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Future<void> _loadPendingChangesCount() async {
+    final count = await _changeTracker.getUnsyncedCount();
+    setState(() => _pendingChangesCount = count);
+  }
+
+  Future<void> _uploadPendingChanges() async {
+    if (_pendingChangesCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No pending changes to upload')),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      final syncedCount = await _changeTracker.syncPendingChanges();
+      await _loadPendingChangesCount();
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Uploaded $syncedCount changes to sandbox for review'),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
   }
 }
