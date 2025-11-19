@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../core/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
+import '../../services/analysis_upload_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/bubble_chip.dart';
 import '../widgets/counter_bar.dart';
@@ -50,6 +52,88 @@ class _AnalysisPageState extends State<AnalysisPage> {
     super.dispose();
   }
 
+  Future<void> _uploadAnalysis(AppState appState) async {
+    if (!appState.hasActiveSample) return;
+
+    final sample = appState.activeSample!;
+
+    // Get device ID
+    String deviceId = 'unknown';
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      deviceId = androidInfo.id;
+    } catch (e) {
+      print('Error getting device info: $e');
+    }
+
+    // Show loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final uploadService = AnalysisUploadService();
+
+      // Check if already uploaded
+      final alreadyUploaded = await uploadService.isSampleUploaded(
+        sample.id!,
+        deviceId,
+      );
+
+      if (alreadyUploaded) {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This sample has already been uploaded'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Upload
+      final docId = await uploadService.uploadSampleAnalysis(
+        sampleId: sample.id!,
+        deviceId: deviceId,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      if (docId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Analysis uploaded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to upload analysis'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
@@ -88,6 +172,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
     return AppScaffold(
       title: AppPageTitles.analysis,
       actions: [
+        IconButton(
+          icon: const Icon(Icons.cloud_upload),
+          onPressed: () => _uploadAnalysis(appState),
+          tooltip: 'Upload to Firebase',
+        ),
         IconButton(
           icon: const Icon(Icons.check_circle),
           onPressed: () async {

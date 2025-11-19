@@ -138,6 +138,16 @@ class OrderInfo {
   final String? reportNo;
   final String? referenceId;
   final String? comments;
+  // New fields for reporting
+  final String? sammNo;
+  final String? authorizedBy;
+  final String? institution;
+  final String? sampleDescription;
+  // Plankton calculation parameters
+  final double? towDistance; // meters
+  final double? sampleVolume; // ml
+  final double? srCellVolume; // ml (Sedgewick-Rafter cell volume)
+  final int? srCellsCounted; // number of SR cells counted
   OrderInfo({
     this.id,
     required this.clientName,
@@ -158,6 +168,14 @@ class OrderInfo {
     this.reportNo,
     this.referenceId,
     this.comments,
+    this.sammNo,
+    this.authorizedBy,
+    this.institution,
+    this.sampleDescription,
+    this.towDistance,
+    this.sampleVolume,
+    this.srCellVolume,
+    this.srCellsCounted,
   });
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -179,6 +197,14 @@ class OrderInfo {
     'reportNo': reportNo,
     'referenceId': referenceId,
     'comments': comments,
+    'sammNo': sammNo,
+    'authorizedBy': authorizedBy,
+    'institution': institution,
+    'sampleDescription': sampleDescription,
+    'towDistance': towDistance,
+    'sampleVolume': sampleVolume,
+    'srCellVolume': srCellVolume,
+    'srCellsCounted': srCellsCounted,
   };
   factory OrderInfo.fromMap(Map<String, dynamic> m) => OrderInfo(
     id: m['id'] as int?,
@@ -204,6 +230,14 @@ class OrderInfo {
     reportNo: m['reportNo'] as String?,
     referenceId: m['referenceId'] as String?,
     comments: m['comments'] as String?,
+    sammNo: m['sammNo'] as String?,
+    authorizedBy: m['authorizedBy'] as String?,
+    institution: m['institution'] as String?,
+    sampleDescription: m['sampleDescription'] as String?,
+    towDistance: m['towDistance'] as double?,
+    sampleVolume: m['sampleVolume'] as double?,
+    srCellVolume: m['srCellVolume'] as double?,
+    srCellsCounted: m['srCellsCounted'] as int?,
   );
 }
 
@@ -355,5 +389,157 @@ class PendingChange {
       'deviceId': deviceId,
       'status': 'pending', // pending, approved, rejected
     };
+  }
+}
+
+/// Model for analysis results to be uploaded to Firebase
+class AnalysisResult {
+  final String? id; // Firebase document ID
+  final int orderId;
+  final int sampleId;
+  final String stationId;
+  final String specimenType;
+  final String biologistId;
+  final DateTime analyzedDate;
+  final String deviceId;
+  final List<TaxonCount> counts;
+  final bool uploaded;
+  final DateTime? uploadedAt;
+
+  // Order metadata for reporting
+  final String clientName;
+  final String? clientAddress;
+  final String? sammNo;
+  final String? authorizedBy;
+  final String? institution;
+  final String? reportNo;
+  final String? referenceId;
+
+  // Calculation parameters
+  final double? areaOfGrab; // m² for macrobenthos
+  final double? filteredVolume; // L for plankton
+  final double? dilutionFactor; // for plankton
+
+  AnalysisResult({
+    this.id,
+    required this.orderId,
+    required this.sampleId,
+    required this.stationId,
+    required this.specimenType,
+    required this.biologistId,
+    required this.analyzedDate,
+    required this.deviceId,
+    required this.counts,
+    this.uploaded = false,
+    this.uploadedAt,
+    required this.clientName,
+    this.clientAddress,
+    this.sammNo,
+    this.authorizedBy,
+    this.institution,
+    this.reportNo,
+    this.referenceId,
+    this.areaOfGrab,
+    this.filteredVolume,
+    this.dilutionFactor,
+  });
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'orderId': orderId,
+      'sampleId': sampleId,
+      'stationId': stationId,
+      'specimenType': specimenType,
+      'biologistId': biologistId,
+      'analyzedDate': analyzedDate.toIso8601String(),
+      'deviceId': deviceId,
+      'counts': counts.map((c) => c.toMap()).toList(),
+      'uploadedAt': DateTime.now().toIso8601String(),
+      'clientName': clientName,
+      'clientAddress': clientAddress,
+      'sammNo': sammNo,
+      'authorizedBy': authorizedBy,
+      'institution': institution,
+      'reportNo': reportNo,
+      'referenceId': referenceId,
+      'areaOfGrab': areaOfGrab,
+      'filteredVolume': filteredVolume,
+      'dilutionFactor': dilutionFactor,
+    };
+  }
+
+  factory AnalysisResult.fromFirestore(Map<String, dynamic> m, String docId) {
+    return AnalysisResult(
+      id: docId,
+      orderId: m['orderId'] as int,
+      sampleId: m['sampleId'] as int,
+      stationId: m['stationId'] as String,
+      specimenType: m['specimenType'] as String,
+      biologistId: m['biologistId'] as String,
+      analyzedDate: DateTime.parse(m['analyzedDate'] as String),
+      deviceId: m['deviceId'] as String,
+      counts: (m['counts'] as List<dynamic>)
+          .map((c) => TaxonCount.fromMap(c as Map<String, dynamic>))
+          .toList(),
+      uploaded: true,
+      uploadedAt: m['uploadedAt'] != null
+          ? DateTime.parse(m['uploadedAt'] as String)
+          : null,
+      clientName: m['clientName'] as String,
+      clientAddress: m['clientAddress'] as String?,
+      sammNo: m['sammNo'] as String?,
+      authorizedBy: m['authorizedBy'] as String?,
+      institution: m['institution'] as String?,
+      reportNo: m['reportNo'] as String?,
+      referenceId: m['referenceId'] as String?,
+      areaOfGrab: m['areaOfGrab'] as double?,
+      filteredVolume: m['filteredVolume'] as double?,
+      dilutionFactor: m['dilutionFactor'] as double?,
+    );
+  }
+}
+
+/// Individual taxon count within an analysis result
+class TaxonCount {
+  final int taxonId;
+  final String taxonName;
+  final String? taxonRank;
+  final List<String> hierarchy; // Full taxonomic hierarchy
+  final int count;
+  final double? density; // Calculated density (ind/m² or units/L)
+  final String? note;
+
+  TaxonCount({
+    required this.taxonId,
+    required this.taxonName,
+    this.taxonRank,
+    required this.hierarchy,
+    required this.count,
+    this.density,
+    this.note,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'taxonId': taxonId,
+      'taxonName': taxonName,
+      'taxonRank': taxonRank,
+      'hierarchy': hierarchy,
+      'count': count,
+      'density': density,
+      'note': note,
+    };
+  }
+
+  factory TaxonCount.fromMap(Map<String, dynamic> m) {
+    return TaxonCount(
+      taxonId: m['taxonId'] as int,
+      taxonName: m['taxonName'] as String,
+      taxonRank: m['taxonRank'] as String?,
+      hierarchy: (m['hierarchy'] as List<dynamic>).cast<String>(),
+      count: m['count'] as int,
+      density: m['density'] as double?,
+      note: m['note'] as String?,
+    );
   }
 }

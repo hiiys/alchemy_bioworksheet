@@ -33,6 +33,18 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
   final _towTypeController = TextEditingController();
   final _filteredVolumeController = TextEditingController();
 
+  // New reporting fields
+  final _sammNoController = TextEditingController();
+  final _authorizedByController = TextEditingController();
+  final _institutionController = TextEditingController();
+  final _sampleDescriptionController = TextEditingController();
+
+  // Plankton calculation parameters
+  final _towDistanceController = TextEditingController();
+  final _sampleVolumeController = TextEditingController();
+  final _srCellVolumeController = TextEditingController();
+  final _srCellsCountedController = TextEditingController();
+
   int _numberOfSamples = 1;
   int _numberOfReplicates = 1;
 
@@ -52,6 +64,14 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
     _filteredVolumeController.dispose();
     _numSamplesController.dispose();
     _numReplicatesController.dispose();
+    _sammNoController.dispose();
+    _authorizedByController.dispose();
+    _institutionController.dispose();
+    _sampleDescriptionController.dispose();
+    _towDistanceController.dispose();
+    _sampleVolumeController.dispose();
+    _srCellVolumeController.dispose();
+    _srCellsCountedController.dispose();
     super.dispose();
   }
 
@@ -79,9 +99,16 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
               const SizedBox(height: 12),
               _textField(_clientAddressController, 'Client Address'),
               const SizedBox(height: 12),
+              _textField(_institutionController, 'Institution'),
+              const SizedBox(height: 12),
+              _textField(_sammNoController, 'SAMM No.'),
+              const SizedBox(height: 12),
+              _textField(_authorizedByController, 'Authorized By'),
+              const SizedBox(height: 12),
               _readOnly('Type of Sample', widget.specimenType),
               const SizedBox(height: 12),
-              // Removed Sample Marking Base per new requirements
+              _textField(_sampleDescriptionController, 'Sample Description'),
+              const SizedBox(height: 12),
               _numberFieldCtrl(
                 _numSamplesController,
                 'Number of samples *',
@@ -116,7 +143,15 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
                 const SizedBox(height: 12),
                 _textField(_towTypeController, 'Tow type'),
                 const SizedBox(height: 12),
-                _textField(_filteredVolumeController, 'Filtered volume'),
+                _textField(_filteredVolumeController, 'Filtered volume (L)'),
+                const SizedBox(height: 12),
+                _textField(_towDistanceController, 'Tow distance (m)'),
+                const SizedBox(height: 12),
+                _textField(_sampleVolumeController, 'Sample volume (ml)'),
+                const SizedBox(height: 12),
+                _textField(_srCellVolumeController, 'SR cell volume (ml)'),
+                const SizedBox(height: 12),
+                _textField(_srCellsCountedController, 'No. of SR cells counted'),
               ],
               const SizedBox(height: 12),
               _textField(_methodController, 'Method of Analysis'),
@@ -255,6 +290,24 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
       comments: _commentsController.text.trim().isEmpty
           ? null
           : _commentsController.text.trim(),
+      // New reporting fields
+      sammNo: _sammNoController.text.trim().isEmpty
+          ? null
+          : _sammNoController.text.trim(),
+      authorizedBy: _authorizedByController.text.trim().isEmpty
+          ? null
+          : _authorizedByController.text.trim(),
+      institution: _institutionController.text.trim().isEmpty
+          ? null
+          : _institutionController.text.trim(),
+      sampleDescription: _sampleDescriptionController.text.trim().isEmpty
+          ? null
+          : _sampleDescriptionController.text.trim(),
+      // Plankton calculation parameters
+      towDistance: double.tryParse(_towDistanceController.text.trim()),
+      sampleVolume: double.tryParse(_sampleVolumeController.text.trim()),
+      srCellVolume: double.tryParse(_srCellVolumeController.text.trim()),
+      srCellsCounted: int.tryParse(_srCellsCountedController.text.trim()),
     );
     final orderId = await appState.createOrderAndGenerateSamples(
       order: order,
@@ -284,6 +337,14 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
       reportNo: order.reportNo,
       referenceId: order.referenceId,
       comments: order.comments,
+      sammNo: order.sammNo,
+      authorizedBy: order.authorizedBy,
+      institution: order.institution,
+      sampleDescription: order.sampleDescription,
+      towDistance: order.towDistance,
+      sampleVolume: order.sampleVolume,
+      srCellVolume: order.srCellVolume,
+      srCellsCounted: order.srCellsCounted,
     );
     await _showAddMarkingsDialog(context, orderId, orderWithId);
   }
@@ -430,6 +491,14 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
                                   reportNo: order.reportNo,
                                   referenceId: order.referenceId,
                                   comments: order.comments,
+                                  sammNo: order.sammNo,
+                                  authorizedBy: order.authorizedBy,
+                                  institution: order.institution,
+                                  sampleDescription: order.sampleDescription,
+                                  towDistance: order.towDistance,
+                                  sampleVolume: order.sampleVolume,
+                                  srCellVolume: order.srCellVolume,
+                                  srCellsCounted: order.srCellsCounted,
                                 );
                                 await appState.saveOrder(updated);
                                 Navigator.pop(context);

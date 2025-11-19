@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'alchemy_bioworksheet.db';
-  static const _databaseVersion = 4;
+  static const _databaseVersion = 5;
 
   // Singleton instance
   static Database? _database;
@@ -236,11 +236,37 @@ class DatabaseHelper {
         'CREATE INDEX IF NOT EXISTS idx_orders_type ON orders(specimenType)',
       );
     }
-    // Ensure orders has referenceId column
+    // Ensure orders has all required columns
     final orderCols = await db.rawQuery("PRAGMA table_info(orders)");
     final orderColNames = orderCols.map((c) => c['name'] as String).toSet();
     if (!orderColNames.contains('referenceId')) {
       await db.execute('ALTER TABLE orders ADD COLUMN referenceId TEXT');
+    }
+    // New reporting fields
+    if (!orderColNames.contains('sammNo')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN sammNo TEXT');
+    }
+    if (!orderColNames.contains('authorizedBy')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN authorizedBy TEXT');
+    }
+    if (!orderColNames.contains('institution')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN institution TEXT');
+    }
+    if (!orderColNames.contains('sampleDescription')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN sampleDescription TEXT');
+    }
+    // Plankton calculation parameters
+    if (!orderColNames.contains('towDistance')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN towDistance REAL');
+    }
+    if (!orderColNames.contains('sampleVolume')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN sampleVolume REAL');
+    }
+    if (!orderColNames.contains('srCellVolume')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN srCellVolume REAL');
+    }
+    if (!orderColNames.contains('srCellsCounted')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN srCellsCounted INTEGER');
     }
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_samples_order ON sample(orderId)',
