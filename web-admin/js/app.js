@@ -1184,3 +1184,285 @@ rejectAllBtn.addEventListener('click', async () => {
 
     setStatus(`Rejected ${rejected} changes`);
 });
+
+// ==================== Analysis Results Section ====================
+
+const analysisResultsModal = document.getElementById('analysis-results-modal');
+const analysisResultsBtn = document.getElementById('analysis-results-btn');
+const resultsCloseBtn = document.getElementById('results-close-btn');
+const resultsTypeFilter = document.getElementById('results-type-filter');
+const resultsClientFilter = document.getElementById('results-client-filter');
+const resultsSearchBtn = document.getElementById('results-search-btn');
+const exportSelectedBtn = document.getElementById('export-selected-btn');
+const selectAllResultsBtn = document.getElementById('select-all-results-btn');
+const deselectAllResultsBtn = document.getElementById('deselect-all-results-btn');
+const resultsCountSpan = document.getElementById('results-count');
+const selectedCountSpan = document.getElementById('selected-count');
+const analysisResultsList = document.getElementById('analysis-results-list');
+
+let analysisResults = [];
+let selectedResults = new Set();
+
+// Open Analysis Results Modal
+analysisResultsBtn.addEventListener('click', async () => {
+    analysisResultsModal.classList.remove('hidden');
+    await loadAnalysisResults();
+});
+
+// Close Modal
+resultsCloseBtn.addEventListener('click', () => {
+    analysisResultsModal.classList.add('hidden');
+});
+
+// Search button
+resultsSearchBtn.addEventListener('click', loadAnalysisResults);
+
+// Load Analysis Results from Firebase
+async function loadAnalysisResults() {
+    analysisResultsList.innerHTML = '<p class="loading">Loading analysis results...</p>';
+    selectedResults.clear();
+    updateSelectedCount();
+
+    try {
+        let query = db.collection('analysis_results');
+
+        const typeFilter = resultsTypeFilter.value;
+        if (typeFilter !== 'all') {
+            query = query.where('specimenType', '==', typeFilter);
+        }
+
+        const snapshot = await query.orderBy('uploadedAt', 'descending').get();
+
+        analysisResults = [];
+        const clientFilter = resultsClientFilter.value.toLowerCase().trim();
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Apply client filter
+            if (clientFilter && !data.clientName.toLowerCase().includes(clientFilter)) {
+                return;
+            }
+            analysisResults.push({
+                id: doc.id,
+                ...data
+            });
+        });
+
+        resultsCountSpan.textContent = `${analysisResults.length} results`;
+        renderAnalysisResults();
+    } catch (error) {
+        console.error('Error loading analysis results:', error);
+        analysisResultsList.innerHTML = '<p class="error">Error loading results. Please try again.</p>';
+    }
+}
+
+// Render Analysis Results
+function renderAnalysisResults() {
+    if (analysisResults.length === 0) {
+        analysisResultsList.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No analysis results found.</p>';
+        exportSelectedBtn.disabled = true;
+        return;
+    }
+
+    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+    html += `<thead>
+        <tr style="background: #f5f5f5;">
+            <th style="padding: 10px; text-align: left; width: 30px;"><input type="checkbox" id="select-all-checkbox"></th>
+            <th style="padding: 10px; text-align: left;">Station</th>
+            <th style="padding: 10px; text-align: left;">Type</th>
+            <th style="padding: 10px; text-align: left;">Client</th>
+            <th style="padding: 10px; text-align: left;">Biologist</th>
+            <th style="padding: 10px; text-align: left;">Date</th>
+            <th style="padding: 10px; text-align: left;">Taxa</th>
+            <th style="padding: 10px; text-align: left;">Actions</th>
+        </tr>
+    </thead><tbody>`;
+
+    for (const result of analysisResults) {
+        const typeClass = `result-type-${result.specimenType.toLowerCase()}`;
+        const analyzedDate = result.analyzedDate ? new Date(result.analyzedDate).toLocaleDateString() : 'N/A';
+        const taxaCount = result.counts ? result.counts.length : 0;
+
+        html += `
+            <tr class="analysis-result-item" data-id="${result.id}">
+                <td style="padding: 10px;">
+                    <input type="checkbox" class="result-select" data-id="${result.id}" ${selectedResults.has(result.id) ? 'checked' : ''}>
+                </td>
+                <td style="padding: 10px;">${result.stationId || 'N/A'}</td>
+                <td style="padding: 10px;"><span class="result-type ${typeClass}">${result.specimenType}</span></td>
+                <td style="padding: 10px;">${result.clientName || 'N/A'}</td>
+                <td style="padding: 10px;">${result.biologistId || 'N/A'}</td>
+                <td style="padding: 10px;">${analyzedDate}</td>
+                <td style="padding: 10px;">${taxaCount}</td>
+                <td style="padding: 10px;">
+                    <button class="btn-secondary view-result-btn" data-id="${result.id}">View</button>
+                    <button class="btn-danger delete-result-btn" data-id="${result.id}" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    html += '</tbody></table>';
+    analysisResultsList.innerHTML = html;
+
+    // Add event listeners
+    document.querySelectorAll('.result-select').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                selectedResults.add(e.target.dataset.id);
+            } else {
+                selectedResults.delete(e.target.dataset.id);
+            }
+            updateSelectedCount();
+        });
+    });
+
+    document.getElementById('select-all-checkbox').addEventListener('change', (e) => {
+        document.querySelectorAll('.result-select').forEach(cb => {
+            cb.checked = e.target.checked;
+            if (e.target.checked) {
+                selectedResults.add(cb.dataset.id);
+            } else {
+                selectedResults.delete(cb.dataset.id);
+            }
+        });
+        updateSelectedCount();
+    });
+
+    document.querySelectorAll('.view-result-btn').forEach(btn => {
+        btn.addEventListener('click', () => viewAnalysisResult(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.delete-result-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteAnalysisResult(btn.dataset.id));
+    });
+}
+
+// Update selected count
+function updateSelectedCount() {
+    selectedCountSpan.textContent = `${selectedResults.size} selected`;
+    exportSelectedBtn.disabled = selectedResults.size === 0;
+}
+
+// Select All / Deselect All
+selectAllResultsBtn.addEventListener('click', () => {
+    document.querySelectorAll('.result-select').forEach(cb => {
+        cb.checked = true;
+        selectedResults.add(cb.dataset.id);
+    });
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) selectAllCb.checked = true;
+    updateSelectedCount();
+});
+
+deselectAllResultsBtn.addEventListener('click', () => {
+    document.querySelectorAll('.result-select').forEach(cb => {
+        cb.checked = false;
+    });
+    selectedResults.clear();
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) selectAllCb.checked = false;
+    updateSelectedCount();
+});
+
+// View Analysis Result Details
+async function viewAnalysisResult(id) {
+    const result = analysisResults.find(r => r.id === id);
+    if (!result) return;
+
+    let detailsHtml = `
+        <h4>Analysis Details</h4>
+        <p><strong>Station:</strong> ${result.stationId}</p>
+        <p><strong>Client:</strong> ${result.clientName}</p>
+        <p><strong>Type:</strong> ${result.specimenType}</p>
+        <p><strong>Biologist:</strong> ${result.biologistId}</p>
+        <p><strong>SAMM No:</strong> ${result.sammNo || 'N/A'}</p>
+        <p><strong>Report No:</strong> ${result.reportNo || 'N/A'}</p>
+        <p><strong>Reference ID:</strong> ${result.referenceId || 'N/A'}</p>
+        <hr>
+        <h4>Taxa Counts (${result.counts ? result.counts.length : 0} taxa)</h4>
+        <div style="max-height: 200px; overflow-y: auto;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <tr><th style="text-align: left; padding: 5px;">Taxon</th><th style="text-align: right; padding: 5px;">Count</th><th style="text-align: right; padding: 5px;">Density</th></tr>
+    `;
+
+    if (result.counts) {
+        for (const count of result.counts) {
+            const density = count.density ? count.density.toFixed(2) : 'N/A';
+            detailsHtml += `<tr><td style="padding: 5px;">${count.taxonName}</td><td style="text-align: right; padding: 5px;">${count.count}</td><td style="text-align: right; padding: 5px;">${density}</td></tr>`;
+        }
+    }
+
+    detailsHtml += '</table></div>';
+
+    alert(detailsHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' '));
+}
+
+// Delete Analysis Result
+async function deleteAnalysisResult(id) {
+    if (!confirm('Are you sure you want to delete this analysis result?')) return;
+
+    try {
+        await db.collection('analysis_results').doc(id).delete();
+        setStatus('Analysis result deleted');
+        await loadAnalysisResults();
+    } catch (error) {
+        console.error('Error deleting result:', error);
+        setStatus('Error deleting result');
+    }
+}
+
+// Export Selected Results to CSV
+exportSelectedBtn.addEventListener('click', () => {
+    if (selectedResults.size === 0) return;
+
+    const selectedData = analysisResults.filter(r => selectedResults.has(r.id));
+
+    // Build CSV with flattened taxa data
+    let csv = 'Station,Type,Client,Biologist,SAMM No,Report No,Reference ID,Analyzed Date,Area of Grab,Filtered Volume,Taxon,Hierarchy,Count,Density,Note\n';
+
+    for (const result of selectedData) {
+        const analyzedDate = result.analyzedDate ? new Date(result.analyzedDate).toISOString().split('T')[0] : '';
+        const baseData = [
+            result.stationId || '',
+            result.specimenType || '',
+            (result.clientName || '').replace(/,/g, ';'),
+            result.biologistId || '',
+            result.sammNo || '',
+            result.reportNo || '',
+            result.referenceId || '',
+            analyzedDate,
+            result.areaOfGrab || '',
+            result.filteredVolume || ''
+        ];
+
+        if (result.counts && result.counts.length > 0) {
+            for (const count of result.counts) {
+                const hierarchy = count.hierarchy ? count.hierarchy.join(' > ') : '';
+                const density = count.density ? count.density.toFixed(4) : '';
+                const row = [
+                    ...baseData,
+                    (count.taxonName || '').replace(/,/g, ';'),
+                    hierarchy.replace(/,/g, ';'),
+                    count.count || 0,
+                    density,
+                    (count.note || '').replace(/,/g, ';')
+                ];
+                csv += row.join(',') + '\n';
+            }
+        } else {
+            csv += baseData.join(',') + ',,,,\n';
+        }
+    }
+
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analysis_results_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setStatus(`Exported ${selectedResults.size} results to CSV`);
+});

@@ -717,6 +717,96 @@ header h1 {
     color: #c62828;
 }
 
+/* Analysis Results Styles */
+.analysis-results-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.results-summary {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.analysis-result-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.analysis-result-item:hover {
+    background: #f5f5f5;
+}
+
+.analysis-result-item:last-child {
+    border-bottom: none;
+}
+
+.result-checkbox {
+    flex-shrink: 0;
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-header {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.result-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.result-meta span {
+    margin-right: 15px;
+}
+
+.result-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.result-type-macrobenthos {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.result-type-zooplankton {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.result-type-phytoplankton {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.result-counts {
+    font-size: 12px;
+    color: #888;
+}
+
+.result-actions {
+    flex-shrink: 0;
+}
+
+.result-actions button {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
 /* Footer */
 footer {
     padding: 10px 20px;

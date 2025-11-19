@@ -52,6 +52,7 @@
                 <button id="import-csv-btn" class="btn-secondary">Import CSV</button>
                 <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
                 <button id="review-changes-btn" class="btn-secondary">Review Changes <span id="pending-count-badge" class="badge hidden">0</span></button>
+                <button id="analysis-results-btn" class="btn-secondary">Analysis Results</button>
                 <button id="help-btn" class="btn-secondary">Help</button>
                 <button id="refresh-btn">Refresh</button>
                 <span id="taxa-count"></span>
@@ -244,6 +245,43 @@
                 <button type="button" id="approve-all-btn" class="btn-primary" disabled>Approve All</button>
                 <button type="button" id="reject-all-btn" class="btn-danger" disabled>Reject All</button>
                 <button type="button" id="review-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results Modal -->
+    <div id="analysis-results-modal" class="modal hidden">
+        <div class="modal-content modal-wide">
+            <h3>Analysis Results</h3>
+            <p>View and export analysis results uploaded from mobile devices.</p>
+
+            <div class="filter-bar">
+                <label>Specimen Type: </label>
+                <select id="results-type-filter">
+                    <option value="all">All Types</option>
+                    <option value="Macrobenthos">Macrobenthos</option>
+                    <option value="Zooplankton">Zooplankton</option>
+                    <option value="Phytoplankton">Phytoplankton</option>
+                </select>
+                <label style="margin-left: 15px;">Client: </label>
+                <input type="text" id="results-client-filter" placeholder="Filter by client...">
+                <button id="results-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+            </div>
+
+            <div id="results-summary" class="results-summary">
+                <span id="results-count">0 results</span>
+                <span id="selected-count" style="margin-left: 15px;">0 selected</span>
+            </div>
+
+            <div id="analysis-results-list" class="analysis-results-container">
+                <p class="loading">Loading analysis results...</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" id="export-selected-btn" class="btn-primary" disabled>Export Selected to CSV</button>
+                <button type="button" id="select-all-results-btn" class="btn-secondary">Select All</button>
+                <button type="button" id="deselect-all-results-btn" class="btn-secondary">Deselect All</button>
+                <button type="button" id="results-close-btn">Close</button>
             </div>
         </div>
     </div>
