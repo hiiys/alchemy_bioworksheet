@@ -1,0 +1,19 @@
+{
+  "name": "alchemy-report-generator",
+  "version": "1.0.0",
+  "description": "Report generator for Alchemy Bioworksheet analysis results",
+  "main": "index.js",
+  "scripts": {
+    "generate": "node index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "exceljs": "^4.4.0",
+    "firebase-admin": "^12.0.0",
+    "pdfkit": "^0.15.0",
+    "inquirer": "^8.2.6"
+  },
+  "author": "Alchemy Bioworksheet",
+  "license": "MIT"
+}
