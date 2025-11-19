@@ -1,0 +1,393 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Login Screen */
+.login-container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-container h1 {
+    color: #2196F3;
+    margin-bottom: 10px;
+}
+
+.login-container p {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+#login-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+#login-form button {
+    width: 100%;
+    padding: 12px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#login-form button:hover {
+    background: #1976D2;
+}
+
+.error {
+    color: #f44336;
+    margin-top: 15px;
+}
+
+/* Header */
+header {
+    background: #2196F3;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 24px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#user-email {
+    opacity: 0.9;
+}
+
+#logout-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#logout-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab {
+    padding: 15px 30px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+}
+
+.tab:hover {
+    background: #f5f5f5;
+}
+
+.tab.active {
+    color: #2196F3;
+    border-bottom-color: #2196F3;
+}
+
+/* Toolbar */
+.toolbar {
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-primary {
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: #388E3C;
+}
+
+.btn-danger {
+    padding: 8px 16px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #d32f2f;
+}
+
+#refresh-btn {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#refresh-btn:hover {
+    background: #f5f5f5;
+}
+
+#taxa-count {
+    margin-left: auto;
+    color: #666;
+}
+
+/* Content Area */
+.content-area {
+    display: flex;
+    height: calc(100vh - 200px);
+}
+
+/* Tree Container */
+.tree-container {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: white;
+}
+
+.loading {
+    color: #666;
+    text-align: center;
+    padding: 40px;
+}
+
+/* Tree Node */
+.tree-node {
+    margin-left: 20px;
+}
+
+.tree-node:first-child {
+    margin-left: 0;
+}
+
+.node-content {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.node-content:hover {
+    background: #e3f2fd;
+}
+
+.node-content.selected {
+    background: #bbdefb;
+}
+
+.toggle-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.node-name {
+    font-weight: 500;
+}
+
+.node-rank {
+    color: #666;
+    font-size: 12px;
+}
+
+.node-actions {
+    margin-left: auto;
+    display: none;
+}
+
+.node-content:hover .node-actions {
+    display: block;
+}
+
+.add-child-btn {
+    padding: 2px 8px;
+    background: #e8f5e9;
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.add-child-btn:hover {
+    background: #c8e6c9;
+}
+
+.children {
+    margin-left: 20px;
+    border-left: 1px dashed #ddd;
+    padding-left: 10px;
+}
+
+.children.collapsed {
+    display: none;
+}
+
+/* Details Panel */
+.details-panel {
+    width: 350px;
+    padding: 20px;
+    background: #fafafa;
+    border-left: 1px solid #ddd;
+    overflow-y: auto;
+}
+
+.details-panel h3 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.details-panel label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+}
+
+.details-panel input,
+.details-panel select,
+.details-panel textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-actions button {
+    flex: 1;
+}
+
+#cancel-btn {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+}
+
+.modal-content h3 {
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#modal-cancel-btn {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Footer */
+footer {
+    padding: 10px 20px;
+    background: #333;
+    color: #aaa;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+}

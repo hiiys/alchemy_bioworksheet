@@ -44,6 +44,13 @@ dependencies:
   file_picker: ^8.3.7
   crypto: ^3.0.3
 
+  # Firebase packages
+  firebase_core: ^3.8.0
+  cloud_firestore: ^5.5.0
+  firebase_auth: ^5.3.3
+  firebase_storage: ^12.3.7
+  connectivity_plus: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
