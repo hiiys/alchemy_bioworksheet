@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "analysis_results",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "specimenType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "uploadedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

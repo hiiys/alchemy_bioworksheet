@@ -1,5 +1,6 @@
 // App State
 let currentSpecimenType = 'Macrobenthos';
+let currentReportingType = 'Macrobenthos';
 let allTaxa = [];
 let selectedTaxonId = null;
 
@@ -10,7 +11,9 @@ const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 const userEmail = document.getElementById('user-email');
 const logoutBtn = document.getElementById('logout-btn');
-const tabs = document.querySelectorAll('.tab');
+const tabs = document.querySelectorAll('#specimen-tabs .tab');
+const navTabs = document.querySelectorAll('.nav-tab');
+const reportingTabs = document.querySelectorAll('#reporting-page .tab');
 const taxonomyTree = document.getElementById('taxonomy-tree');
 const detailsPanel = document.getElementById('details-panel');
 const taxonForm = document.getElementById('taxon-form');
@@ -19,6 +22,11 @@ const refreshBtn = document.getElementById('refresh-btn');
 const taxaCount = document.getElementById('taxa-count');
 const statusMessage = document.getElementById('status-message');
 const lastModified = document.getElementById('last-modified');
+const taxonomyPage = document.getElementById('taxonomy-page');
+const reportingPage = document.getElementById('reporting-page');
+const reportLogPage = document.getElementById('report-log-page');
+const specimenTabs = document.getElementById('specimen-tabs');
+const resultsSectionTitle = document.getElementById('results-section-title');
 
 // Add modal elements
 const addModal = document.getElementById('add-modal');
@@ -56,7 +64,36 @@ logoutBtn.addEventListener('click', () => {
     auth.signOut();
 });
 
-// Tab switching
+// Main navigation (Taxonomy/Reporting/Report Log) tab switching
+navTabs.forEach(navTab => {
+    navTab.addEventListener('click', () => {
+        navTabs.forEach(t => t.classList.remove('active'));
+        navTab.classList.add('active');
+        const page = navTab.dataset.page;
+
+        if (page === 'taxonomy') {
+            taxonomyPage.classList.remove('hidden');
+            reportingPage.classList.add('hidden');
+            reportLogPage.classList.add('hidden');
+            specimenTabs.style.display = 'flex';
+        } else if (page === 'reporting') {
+            taxonomyPage.classList.add('hidden');
+            reportingPage.classList.remove('hidden');
+            reportLogPage.classList.add('hidden');
+            specimenTabs.style.display = 'none';
+            loadReportInfo();
+            loadAnalysisResults();
+        } else if (page === 'report-log') {
+            taxonomyPage.classList.add('hidden');
+            reportingPage.classList.add('hidden');
+            reportLogPage.classList.remove('hidden');
+            specimenTabs.style.display = 'none';
+            loadReportLogs();
+        }
+    });
+});
+
+// Specimen type tab switching
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
@@ -65,6 +102,17 @@ tabs.forEach(tab => {
         hideDetailsPanel();
         loadTaxonomy();
         updateRankOptions();
+    });
+});
+
+// Reporting specimen type tab switching
+reportingTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        reportingTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentReportingType = tab.dataset.type;
+        resultsSectionTitle.textContent = `${currentReportingType} Analysis Results`;
+        loadAnalysisResults();
     });
 });
 
@@ -1185,15 +1233,65 @@ rejectAllBtn.addEventListener('click', async () => {
     setStatus(`Rejected ${rejected} changes`);
 });
 
+// ==================== Report Information Section ====================
+
+const saveReportInfoBtn = document.getElementById('save-report-info-btn');
+const clearReportInfoBtn = document.getElementById('clear-report-info-btn');
+const sammNoInput = document.getElementById('samm-no');
+const reportNoInput = document.getElementById('report-no');
+const institutionInput = document.getElementById('institution');
+const clientAddressInput = document.getElementById('client-address');
+const authorisedByInput = document.getElementById('authorised-by');
+
+// Save Report Info to localStorage
+saveReportInfoBtn.addEventListener('click', () => {
+    const reportInfo = {
+        sammNo: sammNoInput.value.trim(),
+        // reportNo is auto-generated from selected results, not saved
+        institution: institutionInput.value.trim(),
+        clientAddress: clientAddressInput.value.trim(),
+        authorisedBy: authorisedByInput.value.trim()
+    };
+
+    localStorage.setItem('reportInfo', JSON.stringify(reportInfo));
+    setStatus('Report information saved');
+});
+
+// Clear Report Info
+clearReportInfoBtn.addEventListener('click', () => {
+    sammNoInput.value = '';
+    // reportNo is auto-generated, don't clear it here
+    institutionInput.value = '';
+    clientAddressInput.value = '';
+    authorisedByInput.value = '';
+    localStorage.removeItem('reportInfo');
+    setStatus('Report information cleared');
+});
+
+// Load Report Info from localStorage
+function loadReportInfo() {
+    const savedInfo = localStorage.getItem('reportInfo');
+    if (savedInfo) {
+        try {
+            const reportInfo = JSON.parse(savedInfo);
+            sammNoInput.value = reportInfo.sammNo || '';
+            // reportNo is auto-generated from selected results, not loaded
+            institutionInput.value = reportInfo.institution || '';
+            clientAddressInput.value = reportInfo.clientAddress || '';
+            authorisedByInput.value = reportInfo.authorisedBy || '';
+        } catch (error) {
+            console.error('Error loading report info:', error);
+        }
+    }
+}
+
 // ==================== Analysis Results Section ====================
 
-const analysisResultsModal = document.getElementById('analysis-results-modal');
-const analysisResultsBtn = document.getElementById('analysis-results-btn');
-const resultsCloseBtn = document.getElementById('results-close-btn');
-const resultsTypeFilter = document.getElementById('results-type-filter');
 const resultsClientFilter = document.getElementById('results-client-filter');
 const resultsSearchBtn = document.getElementById('results-search-btn');
 const exportSelectedBtn = document.getElementById('export-selected-btn');
+const generateExcelBtn = document.getElementById('generate-excel-btn');
+const generatePdfBtn = document.getElementById('generate-pdf-btn');
 const selectAllResultsBtn = document.getElementById('select-all-results-btn');
 const deselectAllResultsBtn = document.getElementById('deselect-all-results-btn');
 const resultsCountSpan = document.getElementById('results-count');
@@ -1202,17 +1300,6 @@ const analysisResultsList = document.getElementById('analysis-results-list');
 
 let analysisResults = [];
 let selectedResults = new Set();
-
-// Open Analysis Results Modal
-analysisResultsBtn.addEventListener('click', async () => {
-    analysisResultsModal.classList.remove('hidden');
-    await loadAnalysisResults();
-});
-
-// Close Modal
-resultsCloseBtn.addEventListener('click', () => {
-    analysisResultsModal.classList.add('hidden');
-});
 
 // Search button
 resultsSearchBtn.addEventListener('click', loadAnalysisResults);
@@ -1224,20 +1311,32 @@ async function loadAnalysisResults() {
     updateSelectedCount();
 
     try {
+        console.log('Loading analysis results for:', currentReportingType);
         let query = db.collection('analysis_results');
 
-        const typeFilter = resultsTypeFilter.value;
-        if (typeFilter !== 'all') {
-            query = query.where('specimenType', '==', typeFilter);
+        // Filter by current reporting type
+        query = query.where('specimenType', '==', currentReportingType);
+
+        let snapshot;
+        try {
+            // Try with orderBy first
+            snapshot = await query.orderBy('uploadedAt', 'desc').get();
+        } catch (indexError) {
+            // If index error, fall back to query without orderBy
+            console.warn('Index not available, fetching without orderBy:', indexError);
+            console.log('To create the required index, check your browser console for the index creation link');
+            snapshot = await query.get();
         }
 
-        const snapshot = await query.orderBy('uploadedAt', 'descending').get();
+        console.log('Found documents:', snapshot.size);
 
         analysisResults = [];
         const clientFilter = resultsClientFilter.value.toLowerCase().trim();
 
         snapshot.forEach(doc => {
             const data = doc.data();
+            console.log('Document data:', data);
+            console.log('Date Received value:', data.dateReceived, 'Type:', typeof data.dateReceived);
             // Apply client filter
             if (clientFilter && !data.clientName.toLowerCase().includes(clientFilter)) {
                 return;
@@ -1248,11 +1347,20 @@ async function loadAnalysisResults() {
             });
         });
 
+        // Sort by uploadedAt if available (client-side sorting)
+        analysisResults.sort((a, b) => {
+            const dateA = a.uploadedAt ? new Date(a.uploadedAt) : new Date(0);
+            const dateB = b.uploadedAt ? new Date(b.uploadedAt) : new Date(0);
+            return dateB - dateA;
+        });
+
+        console.log('Filtered results:', analysisResults.length);
         resultsCountSpan.textContent = `${analysisResults.length} results`;
         renderAnalysisResults();
     } catch (error) {
         console.error('Error loading analysis results:', error);
-        analysisResultsList.innerHTML = '<p class="error">Error loading results. Please try again.</p>';
+        console.error('Error details:', error.message, error.code);
+        analysisResultsList.innerHTML = `<p class="error">Error loading results: ${error.message}<br>Please check the browser console for details.</p>`;
     }
 }
 
@@ -1338,10 +1446,42 @@ function renderAnalysisResults() {
     });
 }
 
-// Update selected count
+// Update selected count and report cover
 function updateSelectedCount() {
     selectedCountSpan.textContent = `${selectedResults.size} selected`;
-    exportSelectedBtn.disabled = selectedResults.size === 0;
+    const hasSelection = selectedResults.size > 0;
+    exportSelectedBtn.disabled = !hasSelection;
+    generateExcelBtn.disabled = !hasSelection;
+    generatePdfBtn.disabled = !hasSelection;
+
+    // Update report cover field
+    const reportNoInput = document.getElementById('report-no');
+    if (hasSelection) {
+        // Get selected results data
+        const selectedData = analysisResults.filter(r => selectedResults.has(r.id));
+
+        // Extract and sort report numbers
+        const reportNumbers = selectedData
+            .map(r => r.reportNo)
+            .filter(rn => rn && rn.trim() !== '')
+            .sort();
+
+        if (reportNumbers.length > 0) {
+            // Generate report cover range
+            const firstReport = reportNumbers[0];
+            const lastReport = reportNumbers[reportNumbers.length - 1];
+
+            if (firstReport === lastReport) {
+                reportNoInput.value = firstReport;
+            } else {
+                reportNoInput.value = `${firstReport} - ${lastReport}`;
+            }
+        } else {
+            reportNoInput.value = '';
+        }
+    } else {
+        reportNoInput.value = '';
+    }
 }
 
 // Select All / Deselect All
@@ -1465,4 +1605,997 @@ exportSelectedBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);
 
     setStatus(`Exported ${selectedResults.size} results to CSV`);
+});
+
+// Generate Excel Report
+generateExcelBtn.addEventListener('click', () => {
+    if (selectedResults.size === 0) return;
+
+    const selectedData = analysisResults.filter(r => selectedResults.has(r.id));
+
+    // Group by specimen type
+    const specimenTypes = [...new Set(selectedData.map(r => r.specimenType))];
+
+    const workbook = XLSX.utils.book_new();
+
+    for (const specimenType of specimenTypes) {
+        const typeResults = selectedData.filter(r => r.specimenType === specimenType);
+
+        // Sheet 1: Sample Info
+        const infoData = createSampleInfoData(typeResults, specimenType);
+        const infoSheet = XLSX.utils.aoa_to_sheet(infoData);
+        XLSX.utils.book_append_sheet(workbook, infoSheet, `${specimenType} - Info`);
+
+        // Sheet 2: Sample List
+        const listData = createSampleListData(typeResults);
+        const listSheet = XLSX.utils.aoa_to_sheet(listData);
+
+        // Apply center alignment to table headers and data (rows 7 onwards)
+        const range = XLSX.utils.decode_range(listSheet['!ref']);
+        for (let R = 6; R <= range.e.r; R++) { // Row 7 (index 6) onwards
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!listSheet[cellAddress]) continue;
+
+                // Initialize cell style if not exists
+                if (!listSheet[cellAddress].s) {
+                    listSheet[cellAddress].s = {};
+                }
+
+                // Set center alignment
+                listSheet[cellAddress].s.alignment = {
+                    horizontal: 'center',
+                    vertical: 'center'
+                };
+            }
+        }
+
+        XLSX.utils.book_append_sheet(workbook, listSheet, 'Sample List');
+
+        // Sheet 3+: Macro Analysis (paginated - max 6 samples per sheet)
+        const maxSamplesPerPage = 6;
+        const numPages = Math.ceil(typeResults.length / maxSamplesPerPage);
+
+        for (let pageIndex = 0; pageIndex < numPages; pageIndex++) {
+            const startIdx = pageIndex * maxSamplesPerPage;
+            const endIdx = Math.min(startIdx + maxSamplesPerPage, typeResults.length);
+            const pageResults = typeResults.slice(startIdx, endIdx);
+
+            const analysisData = createAnalysisData(pageResults);
+            const analysisSheet = XLSX.utils.aoa_to_sheet(analysisData);
+
+            // Apply formatting to the analysis sheet
+            const range = XLSX.utils.decode_range(analysisSheet['!ref']);
+
+            // Find row indices for special formatting
+            const areaOfGrabRow = 4; // Row 5 in Excel (0-indexed: row 5 = index 4)
+            const dataStartRow = 2; // Row 3 where table data starts (Reference ID row)
+
+            // Find the row with "Total Number of Taxa:" to add bold top border
+            let totalTaxaRow = -1;
+            for (let R = dataStartRow; R <= range.e.r; R++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: 5 });
+                if (analysisSheet[cellAddress] &&
+                    analysisSheet[cellAddress].v === 'Total Number of Taxa:') {
+                    totalTaxaRow = R;
+                    break;
+                }
+            }
+
+            // Apply borders and alignment to all cells in the table
+            for (let R = dataStartRow; R <= range.e.r; R++) {
+                for (let C = range.s.c; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!analysisSheet[cellAddress]) {
+                        analysisSheet[cellAddress] = { t: 's', v: '' };
+                    }
+
+                    if (!analysisSheet[cellAddress].s) {
+                        analysisSheet[cellAddress].s = {};
+                    }
+
+                    // Default borders - thin horizontal, bold vertical
+                    const border = {
+                        top: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                        bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                        left: { style: 'medium', color: { rgb: 'D3D3D3' } },   // Bold vertical
+                        right: { style: 'medium', color: { rgb: 'D3D3D3' } }   // Bold vertical
+                    };
+
+                    // Bold line after Area of grab row
+                    if (R === areaOfGrabRow) {
+                        border.bottom = { style: 'medium', color: { rgb: '000000' } };
+                    }
+
+                    // Bold line before Total Number of Taxa
+                    if (R === totalTaxaRow) {
+                        border.top = { style: 'medium', color: { rgb: '000000' } };
+                    }
+
+                    analysisSheet[cellAddress].s.border = border;
+
+                    // Center-align sample columns (all columns except first column which is column 5, index 5)
+                    // Column 6 onwards (index 6+) are sample data columns
+                    if (C >= 6) {
+                        analysisSheet[cellAddress].s.alignment = {
+                            horizontal: 'center',
+                            vertical: 'center'
+                        };
+                    }
+
+                    // Ensure black font color
+                    analysisSheet[cellAddress].s.font = {
+                        color: { rgb: '000000' }
+                    };
+                }
+            }
+
+            // Determine sheet name based on specimen type
+            let analysisSheetName;
+            if (specimenType === 'Macrobenthos') {
+                analysisSheetName = numPages > 1 ? `Macro Analysis ${pageIndex + 1}` : 'Macro Analysis';
+            } else if (specimenType === 'Phytoplankton') {
+                analysisSheetName = numPages > 1 ? `Phyto Analysis ${pageIndex + 1}` : 'Phyto Analysis';
+            } else if (specimenType === 'Zooplankton') {
+                analysisSheetName = numPages > 1 ? `Zoo Analysis ${pageIndex + 1}` : 'Zoo Analysis';
+            } else {
+                analysisSheetName = numPages > 1 ? `${specimenType} Analysis ${pageIndex + 1}` : `${specimenType} Analysis`;
+            }
+
+            XLSX.utils.book_append_sheet(workbook, analysisSheet, analysisSheetName);
+        }
+    }
+
+    // Download
+    const timestamp = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `analysis_report_${timestamp}.xlsx`);
+
+    setStatus(`Generated Excel report with ${selectedResults.size} samples`);
+
+    // Save report log
+    const firstResult = selectedData[0];
+    const reportNumbers = selectedData
+        .map(r => r.reportNo)
+        .filter(rn => rn && rn.trim() !== '')
+        .sort();
+    const reportCover = reportNumbers.length > 0
+        ? (reportNumbers[0] === reportNumbers[reportNumbers.length - 1]
+            ? reportNumbers[0]
+            : `${reportNumbers[0]} - ${reportNumbers[reportNumbers.length - 1]}`)
+        : '';
+
+    saveReportLog({
+        clientName: firstResult.clientName,
+        institution: firstResult.institution,
+        referenceId: firstResult.referenceId,
+        reportCover: reportCover,
+        dateReceived: firstResult.dateReceived,
+        numberOfSamples: selectedData.length,
+        reportType: 'Excel',
+        specimenType: specimenTypes.join(', ')
+    });
+});
+
+// Helper: Create Sample Info sheet data
+function createSampleInfoData(results, specimenType) {
+    const sample = results[0] || {};
+
+    // Get report info from localStorage
+    const reportInfo = localStorage.getItem('reportInfo');
+    let sammNo = '';
+    let clientAddress = '';
+    let authorisedBy = '';
+
+    if (reportInfo) {
+        try {
+            const info = JSON.parse(reportInfo);
+            sammNo = info.sammNo || '';
+            // reportNo is no longer in localStorage - calculate from results
+            clientAddress = info.clientAddress || '';
+            authorisedBy = info.authorisedBy || '';
+        } catch (e) {
+            console.error('Error parsing report info:', e);
+        }
+    }
+
+    // Calculate report cover range from results
+    const reportNumbers = results
+        .map(r => r.reportNo)
+        .filter(rn => rn && rn.trim() !== '')
+        .sort();
+
+    let reportNo = '';
+    if (reportNumbers.length > 0) {
+        const firstReport = reportNumbers[0];
+        const lastReport = reportNumbers[reportNumbers.length - 1];
+        reportNo = (firstReport === lastReport) ? firstReport : `${firstReport} - ${lastReport}`;
+    }
+
+    // Collect all unique station IDs (sample markings)
+    const allStationIds = [...new Set(results.map(r => r.stationId))].sort().join(', ');
+
+    const data = [
+        ['ALCHEMY Laboratory & Services Sdn. Bhd. (Company No: 903112 K)', '', '', '', '', `SAMM NO. ${sammNo}`],
+        ['326B, 1st Floor, Lot 2520, Jalan Hijiran, Mukim Losong,', '', '', '', '', ''],
+        ['20300, Kuala Terengganu, Terengganu, Malaysia.', '', '', '', '', ''],
+        ['Tel: +609-622 4166, Fax: +609-622 4177.', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['', '', '', '', `Report ID : ${reportNo}`, ''],
+        ['', '', '', '', `Date : ${new Date().toLocaleDateString('en-GB')}`, ''],
+        ['', '', '', '', 'Pages : 3', ''],
+        ['', '', '', '', '', ''],
+        ['CERTIFICATE OF ANALYSIS', '', '', '', '', ''],
+        [`${specimenType}: Sample Information`, '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['Client Name:', sample.clientName || '', '', '', '', ''],
+        ['Client Address:', clientAddress || sample.clientAddress || '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['Sample Type:', 'Sediment', '', '', '', ''],
+        ['Sample Marking:', allStationIds || '', '', '', '', ''],
+        ['Number of samples:', results.length, '', '', '', ''],
+        ['Number of replicates:', 'N/A', '', '', '', ''],
+        ['Date Received:', sample.dateReceived ? new Date(sample.dateReceived).toLocaleDateString('en-GB') : '', '', '', '', ''],
+        ['Gear used:', sample.gearUsed || '', '', '', '', '']
+    ];
+
+    if (specimenType === 'Macrobenthos') {
+        data.push(
+            ['Area of Grab:', sample.areaOfGrab ? `${sample.areaOfGrab} m²` : '', '', '', '', ''],
+            ['Sieve size:', sample.sieveSize ? `${sample.sieveSize} mm` : '', '', '', '', '']
+        );
+    } else {
+        data.push(
+            ['Net Diameter:', sample.netDiameter || '', '', '', '', ''],
+            ['Net Mesh:', sample.netMesh || '', '', '', '', ''],
+            ['Tow Type:', sample.towType || '', '', '', '', ''],
+            ['Filtered Volume:', sample.filteredVolume ? `${sample.filteredVolume} L` : '', '', '', '', '']
+        );
+    }
+
+    data.push(
+        ['Method of Analysis:', sample.methodAnalysis || 'SOP No.: ALC_B_004', '', '', '', ''],
+        ['Comments:', 'based on APHA 10500 C', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['The details above are provided by the client. The reported results refer to sample(s) submitted by client only.', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['Authorized by:', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['', '', '', '', '', ''],
+        ['.............................................', '', '', '', '', ''],
+        [authorisedBy || 'Muhammad Firdaus Bin Daud', '', '', '', '', ''],
+        ['Marine Biologist', '', '', '', '', ''],
+        ['BSc.(Marine Science)', '', '', '', '', '']
+    );
+
+    return data;
+}
+
+// Helper: Create Sample List sheet data
+function createSampleListData(results) {
+    const sample = results[0] || {};
+
+    // Get report info from localStorage
+    const reportInfo = localStorage.getItem('reportInfo');
+    let institution = '';
+
+    if (reportInfo) {
+        try {
+            const info = JSON.parse(reportInfo);
+            // reportNo is no longer in localStorage - each result has its own auto-generated reportNo
+            institution = info.institution || '';
+        } catch (e) {
+            console.error('Error parsing report info:', e);
+        }
+    }
+
+    const data = [
+        ['ALCHEMY Laboratory & Services Sdn Bhd', '', '', '', ''],
+        ['', '', '', '', ''],
+        ['Client:', sample.clientName || '', '', '', ''],
+        ['Institution:', institution || sample.institution || sample.clientName || '', '', '', ''],
+        ['Description:', 'SEDIMENT', '', '', ''],
+        ['', '', '', '', ''],
+        ['', 'Date Received', 'Sample Marking', 'Date of Analysis', 'Reference ID', 'Report No.']
+    ];
+
+    results.forEach((result, index) => {
+        data.push([
+            index + 1,
+            result.dateReceived ? new Date(result.dateReceived).toLocaleDateString('en-GB') : '',
+            result.stationId || '',
+            result.analyzedDate ? new Date(result.analyzedDate).toLocaleDateString('en-GB') : '',
+            result.referenceId || '',
+            result.reportNo || ''  // Use individual result's auto-generated Report No.
+        ]);
+    });
+
+    return data;
+}
+
+// Helper: Create Analysis sheet data
+function createAnalysisData(results) {
+    const specimenType = results[0]?.specimenType || 'Macrobenthos';
+
+    // Build hierarchical taxonomy tree structure
+    const taxonomyTree = buildTaxonomyTree(results);
+
+    // Initialize data array with headers
+    const data = [];
+
+    // Row 1: Company name
+    data.push(['ALCHEMY Laboratory & Services Sdn Bhd', '', '', '', '', ...new Array(results.length).fill('')]);
+
+    // Row 2: Sheet title
+    const densityUnit = specimenType === 'Macrobenthos' ? 'unit m2' : 'units/L';
+    data.push([`${specimenType} Data Sheet: Analysed density per sample/${densityUnit}`, '', '', '', '', ...new Array(results.length).fill('')]);
+
+    // Row 3: Reference IDs (part of table)
+    const refIdRow = ['', '', '', '', '', 'Reference ID:', ...results.map(r => r.referenceId || '')];
+    data.push(refIdRow);
+
+    // Row 4: Sample Markings (part of table)
+    const sampleRow = ['', '', '', '', '', 'Sample Marking:', ...results.map(r => r.stationId || '')];
+    data.push(sampleRow);
+
+    // Row 5: Area/Volume (part of table)
+    const areaLabel = specimenType === 'Macrobenthos' ? 'Area of grab (m2)' : 'Filtered Volume (L)';
+    const areaValues = results.map(r => {
+        if (specimenType === 'Macrobenthos') {
+            return r.areaOfGrab || 0.3;
+        } else {
+            return r.filteredVolume || 1;
+        }
+    });
+    data.push(['', '', '', '', '', areaLabel, ...areaValues]);
+
+    // Add taxonomy rows
+    const taxonomyRows = renderTaxonomyTree(taxonomyTree, results);
+    data.push(...taxonomyRows);
+
+    // Add empty separator row
+    data.push(['', '', '', '', '', '', ...new Array(results.length).fill('')]);
+
+    // Summary statistics (all part of table)
+    // Total Number of Taxa
+    const taxaCounts = calculateTaxaCounts(results);
+    data.push(['', '', '', '', '', 'Total Number of Taxa:', ...taxaCounts]);
+
+    // Overall density
+    const overallDensities = calculateOverallDensities(results);
+    const densityLabel2 = specimenType === 'Macrobenthos' ? 'Overall density(units/m2):' : 'Overall density(units/L):';
+    data.push(['', '', '', '', '', densityLabel2, ...overallDensities]);
+
+    // Taxa diversity Index (H')
+    const shannonIndices = calculateShannonIndices(results);
+    data.push(['', '', '', '', '', "Taxa diversity Index (H'):", ...shannonIndices]);
+
+    // Evenness Index (J')
+    const evennessIndices = calculateEvennessIndices(results);
+    data.push(['', '', '', '', '', "Eveness Index (J'):", ...evennessIndices]);
+
+    return data;
+}
+
+// Helper: Build complete taxonomy tree from all results
+function buildTaxonomyTree(results) {
+    const tree = {};
+
+    // Collect all taxa with their hierarchies
+    results.forEach((result, resultIndex) => {
+        if (!result.counts) return;
+
+        result.counts.forEach(count => {
+            const hierarchy = count.hierarchy || [];
+            if (hierarchy.length === 0) return;
+
+            // Build path through tree
+            let currentLevel = tree;
+            hierarchy.forEach((taxonName, level) => {
+                if (!currentLevel[taxonName]) {
+                    currentLevel[taxonName] = {
+                        name: taxonName,
+                        rank: getRankFromLevel(level, results[0]?.specimenType),
+                        children: {},
+                        densities: new Array(results.length).fill(null),
+                        counts: new Array(results.length).fill(0)
+                    };
+                }
+
+                // If this is the final level (the taxon that was counted)
+                if (level === hierarchy.length - 1) {
+                    currentLevel[taxonName].densities[resultIndex] = count.density;
+                    currentLevel[taxonName].counts[resultIndex] = count.count;
+                }
+
+                currentLevel = currentLevel[taxonName].children;
+            });
+        });
+    });
+
+    return tree;
+}
+
+// Helper: Get rank name from hierarchy level
+function getRankFromLevel(level, specimenType) {
+    if (specimenType === 'Phytoplankton') {
+        const ranks = ['Division', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+        return ranks[level] || '';
+    } else {
+        const ranks = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+        return ranks[level] || '';
+    }
+}
+
+// Helper: Render taxonomy tree to rows with proper indentation
+function renderTaxonomyTree(tree, results, level = 0, rows = []) {
+    // Sort taxa alphabetically at each level
+    const sortedKeys = Object.keys(tree).sort();
+
+    sortedKeys.forEach(taxonName => {
+        const taxon = tree[taxonName];
+        const row = new Array(6 + results.length).fill('');
+
+        // Add indentation and taxon name
+        if (level === 0) {
+            row[0] = `${taxon.rank}:`;
+            row[1] = taxon.name;
+        } else {
+            // Indentation by level
+            row[level] = `${taxon.rank}:`;
+            row[level + 1] = taxon.name;
+        }
+
+        // Add density values (only where counted)
+        for (let i = 0; i < results.length; i++) {
+            if (taxon.densities[i] !== null) {
+                row[6 + i] = taxon.densities[i];
+            }
+        }
+
+        rows.push(row);
+
+        // Add empty row if this taxon has no children (leaf node)
+        if (Object.keys(taxon.children).length === 0) {
+            rows.push(new Array(6 + results.length).fill(''));
+        }
+
+        // Recursively render children
+        if (Object.keys(taxon.children).length > 0) {
+            renderTaxonomyTree(taxon.children, results, level + 1, rows);
+        }
+    });
+
+    return rows;
+}
+
+// Helper: Calculate total number of unique taxa per sample
+function calculateTaxaCounts(results) {
+    return results.map(result => {
+        if (!result.counts || result.counts.length === 0) return 0;
+        // Count unique taxa (taxa with non-zero counts)
+        return result.counts.filter(c => c.count > 0).length;
+    });
+}
+
+// Helper: Calculate overall density per sample
+function calculateOverallDensities(results) {
+    return results.map(result => {
+        if (!result.counts || result.counts.length === 0) return 0;
+        // Sum all densities
+        const totalDensity = result.counts.reduce((sum, c) => sum + (c.density || 0), 0);
+        return totalDensity;
+    });
+}
+
+// Helper: Calculate Shannon Diversity Index (H') for each sample
+function calculateShannonIndices(results) {
+    return results.map(result => {
+        if (!result.counts || result.counts.length === 0) return 0;
+
+        // Get counts for taxa with non-zero counts
+        const counts = result.counts.filter(c => c.count > 0).map(c => c.count);
+        if (counts.length === 0) return 0;
+
+        // Calculate total individuals
+        const totalIndividuals = counts.reduce((sum, count) => sum + count, 0);
+        if (totalIndividuals === 0) return 0;
+
+        // Calculate Shannon Index: H' = -Σ(pi × ln(pi))
+        let shannonIndex = 0;
+        counts.forEach(count => {
+            const proportion = count / totalIndividuals;
+            if (proportion > 0) {
+                shannonIndex -= proportion * Math.log(proportion);
+            }
+        });
+
+        return shannonIndex;
+    });
+}
+
+// Helper: Calculate Pielou's Evenness Index (J') for each sample
+function calculateEvennessIndices(results) {
+    return results.map((result, index) => {
+        if (!result.counts || result.counts.length === 0) return 0;
+
+        // Get counts for taxa with non-zero counts
+        const counts = result.counts.filter(c => c.count > 0).map(c => c.count);
+        const numSpecies = counts.length;
+        if (numSpecies === 0 || numSpecies === 1) return 0;
+
+        // Calculate Shannon Index (H')
+        const shannonIndices = calculateShannonIndices(results);
+        const H = shannonIndices[index];
+
+        // Calculate Maximum Diversity: H'max = ln(S)
+        const Hmax = Math.log(numSpecies);
+
+        // Calculate Evenness: J' = H' / H'max
+        if (Hmax === 0) return 0;
+        return H / Hmax;
+    });
+}
+
+// Helper: Build taxonomy table data for PDF (flatten tree with indentation)
+function buildTaxonomyTableForPDF(tree, results, level = 0, rows = []) {
+    const sortedKeys = Object.keys(tree).sort();
+
+    sortedKeys.forEach(taxonName => {
+        const taxon = tree[taxonName];
+
+        // Create indentation string
+        const indent = '  '.repeat(level);
+        const taxonLabel = `${indent}${taxon.rank}: ${taxon.name}`;
+
+        // Build row with densities
+        const row = [taxonLabel];
+        for (let i = 0; i < results.length; i++) {
+            if (taxon.densities[i] !== null) {
+                row.push(taxon.densities[i].toFixed(2));
+            } else {
+                row.push('');
+            }
+        }
+
+        rows.push(row);
+
+        // Recursively add children
+        if (Object.keys(taxon.children).length > 0) {
+            buildTaxonomyTableForPDF(taxon.children, results, level + 1, rows);
+        }
+    });
+
+    return rows;
+}
+
+// Generate PDF Report
+generatePdfBtn.addEventListener('click', async () => {
+    if (selectedResults.size === 0) return;
+
+    const selectedData = analysisResults.filter(r => selectedResults.has(r.id));
+
+    // Get report info from localStorage
+    const reportInfo = localStorage.getItem('reportInfo');
+    let sammNo = '';
+    let institution = '';
+    let clientAddress = '';
+    let authorisedBy = '';
+
+    if (reportInfo) {
+        try {
+            const info = JSON.parse(reportInfo);
+            sammNo = info.sammNo || '';
+            // reportNo is no longer in localStorage - calculate from results
+            institution = info.institution || '';
+            clientAddress = info.clientAddress || '';
+            authorisedBy = info.authorisedBy || 'Muhammad Firdaus Bin Daud';
+        } catch (e) {
+            console.error('Error parsing report info:', e);
+            authorisedBy = 'Muhammad Firdaus Bin Daud';
+        }
+    } else {
+        authorisedBy = 'Muhammad Firdaus Bin Daud';
+    }
+
+    // Calculate report cover range from selected results
+    const reportNumbers = selectedData
+        .map(r => r.reportNo)
+        .filter(rn => rn && rn.trim() !== '')
+        .sort();
+
+    let reportNo = '';
+    if (reportNumbers.length > 0) {
+        const firstReport = reportNumbers[0];
+        const lastReport = reportNumbers[reportNumbers.length - 1];
+        reportNo = (firstReport === lastReport) ? firstReport : `${firstReport} - ${lastReport}`;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Group by specimen type
+    const specimenTypes = [...new Set(selectedData.map(r => r.specimenType))];
+
+    for (const specimenType of specimenTypes) {
+        const typeResults = selectedData.filter(r => r.specimenType === specimenType);
+        const sample = typeResults[0] || {};
+
+        // ============ PAGE 1: Sample Information ============
+
+        // Add logos (convert to base64 or use image URLs)
+        try {
+            // Alchemy logo - centered at top
+            doc.addImage('images/logo.png', 'PNG', 80, 10, 50, 20);
+
+            // SAMM logo - right side of first row
+            doc.addImage('images/samm-logo.png', 'PNG', 170, 8, 25, 25);
+        } catch (e) {
+            console.warn('Could not load logos:', e);
+        }
+
+        // SAMM NO. - top right
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`SAMM NO. ${sammNo}`, 195, 38, { align: 'right' });
+
+        // Horizontal line above Alchemy address
+        doc.setLineWidth(0.5);
+        doc.line(15, 41.5, 195, 41.5);
+
+        // Company header (moved down one more row)
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ALCHEMY Laboratory & Services Sdn. Bhd. (Company No: 903112 K)', 105, 48, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('326B, 1st Floor, Lot 2520, Jalan Hijiran, Mukim Losong,', 105, 53, { align: 'center' });
+        doc.text('20300, Kuala Terengganu, Terengganu, Malaysia.', 105, 57, { align: 'center' });
+        doc.text('Tel: +609-622 4166, Fax: +609-622 4177.', 105, 61, { align: 'center' });
+
+        // Horizontal line after Alchemy address
+        doc.setLineWidth(0.5);
+        doc.line(15, 65, 195, 65);
+
+        // Report details - right side (moved down one more line)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        const today = new Date();
+        const dateStr = `${today.getDate()}-${today.toLocaleString('en-US', { month: 'short' })}-${today.getFullYear().toString().slice(-2)}`;
+        doc.text(`Report ID : ${reportNo}`, 195, 73, { align: 'right' });
+        doc.text(`Date : ${dateStr}`, 195, 78, { align: 'right' });
+        doc.text('Pages : 3', 195, 83, { align: 'right' });
+
+        // Title
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CERTIFICATE OF ANALYSIS', 105, 93, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.text(`${specimenType}: Sample Information`, 15, 103);
+
+        // Sample information table
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        let y = 110;
+
+        const addRow = (label, value) => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(label, 15, y);
+            doc.setFont('helvetica', 'normal');
+            doc.text(String(value || ''), 70, y);
+            y += 6;
+        };
+
+        addRow('Client Name:', sample.clientName || '');
+
+        // Handle multi-line client address
+        const addressLines = (clientAddress || sample.clientAddress || '').split('\n');
+        doc.setFont('helvetica', 'bold');
+        doc.text('Client Address:', 15, y);
+        doc.setFont('helvetica', 'normal');
+        addressLines.forEach((line, i) => {
+            doc.text(line, 70, y + (i * 5));
+        });
+        y += Math.max(addressLines.length * 5, 6);
+
+        // Collect all unique station IDs (sample markings)
+        const allStationIds = [...new Set(typeResults.map(r => r.stationId))].sort().join(', ');
+
+        y += 2;
+        addRow('Sample Type:', 'Sediment');
+        addRow('Sample Marking:', allStationIds || '');
+        addRow('Number of samples:', String(typeResults.length));
+        addRow('Number of replicates:', 'N/A');
+        addRow('Date Received:', sample.dateReceived ? new Date(sample.dateReceived).toLocaleDateString('en-GB') : '');
+        addRow('Gear used:', sample.gearUsed || '');
+
+        if (specimenType === 'Macrobenthos') {
+            addRow('Area of Grab:', sample.areaOfGrab ? `${sample.areaOfGrab} m²` : '');
+            addRow('Sieve size:', sample.sieveSize ? `${sample.sieveSize} mm` : '');
+        } else {
+            addRow('Net Diameter:', sample.netDiameter || '');
+            addRow('Net Mesh:', sample.netMesh || '');
+            addRow('Tow Type:', sample.towType || '');
+            addRow('Filtered Volume:', sample.filteredVolume ? `${sample.filteredVolume} L` : '');
+        }
+
+        addRow('Method of Analysis:', sample.methodAnalysis || 'SOP No.: ALC_B_004');
+        addRow('Comments:', 'based on APHA 10500 C');
+
+        // Disclaimer
+        y += 5;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.text('The details above are provided by the client. The reported results refer to sample(s) submitted by client only.', 15, y, {
+            maxWidth: 180
+        });
+
+        // Signature section
+        y += 15;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Authorized by:', 15, y);
+
+        y += 15;
+        doc.setFont('helvetica', 'normal');
+        doc.text('.............................................', 15, y);
+        y += 5;
+        doc.text(authorisedBy, 15, y);
+        y += 5;
+        doc.text('Marine Biologist', 15, y);
+        y += 5;
+        doc.text('BSc.(Marine Science)', 15, y);
+
+        // ============ PAGE 2: Sample List ============
+        doc.addPage();
+
+        // Define margins (2cm = 20mm, converted from points to mm)
+        const marginLeft = 20;  // 2cm in mm
+        const marginRight = 20; // 2cm in mm
+        const marginTop = 20;
+        const pageWidth = 210; // A4 width in mm
+
+        // Header
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ALCHEMY Laboratory & Services Sdn Bhd', 105, marginTop + 10, { align: 'center' });
+
+        // Client information
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Client:', marginLeft, marginTop + 25);
+        doc.setFont('helvetica', 'normal');
+        doc.text(sample.clientName || '', marginLeft + 45, marginTop + 25);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Institution:', marginLeft, marginTop + 32);
+        doc.setFont('helvetica', 'normal');
+        doc.text(institution || sample.institution || sample.clientName || '', marginLeft + 45, marginTop + 32);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Description:', marginLeft, marginTop + 39);
+        doc.setFont('helvetica', 'normal');
+        doc.text('SEDIMENT', marginLeft + 45, marginTop + 39);
+
+        // Sample List Table
+        const tableStartY = marginTop + 50;
+        const usableWidth = pageWidth - marginLeft - marginRight; // 210 - 20 - 20 = 170mm
+        // Adjusted column widths to fit within 170mm and accommodate Report No. (TR/BM/00001/25)
+        const colWidths = [10, 28, 30, 28, 28, 46]; // Total: 170mm
+        const colX = [
+            marginLeft,                    // No.: 20mm
+            marginLeft + 10,               // Date Received: 30mm
+            marginLeft + 38,               // Sample Marking: 68mm
+            marginLeft + 68,               // Date of Analysis: 96mm
+            marginLeft + 96,               // Reference ID: 124mm
+            marginLeft + 124               // Report No.: 170mm
+        ];
+
+        // Table header background
+        doc.setFillColor(245, 245, 245);
+        doc.rect(marginLeft, tableStartY, usableWidth, 10, 'F');
+
+        // Table headers
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        const headers = ['', 'Date Received', 'Sample Marking', 'Date of Analysis', 'Reference ID', 'Report No.'];
+        headers.forEach((header, i) => {
+            const centerX = colX[i] + (colWidths[i] / 2);
+            doc.text(header, centerX, tableStartY + 7, { align: 'center' });
+        });
+
+        // Table borders
+        doc.setLineWidth(0.3);
+        doc.rect(marginLeft, tableStartY, usableWidth, 10); // Header row border
+
+        // Table rows
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        let rowY = tableStartY + 10;
+
+        typeResults.forEach((result, index) => {
+            // Row background (alternating)
+            if (index % 2 === 1) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(marginLeft, rowY, usableWidth, 8, 'F');
+            }
+
+            // Row data - Date Received from uploaded data (center-aligned)
+            doc.text(String(index + 1), colX[0] + (colWidths[0] / 2), rowY + 5.5, { align: 'center' });
+            doc.text(result.dateReceived ? new Date(result.dateReceived).toLocaleDateString('en-GB') : '', colX[1] + (colWidths[1] / 2), rowY + 5.5, { align: 'center' });
+            doc.text(result.stationId || '', colX[2] + (colWidths[2] / 2), rowY + 5.5, { align: 'center' });
+            doc.text(result.analyzedDate ? new Date(result.analyzedDate).toLocaleDateString('en-GB') : '', colX[3] + (colWidths[3] / 2), rowY + 5.5, { align: 'center' });
+            doc.text(result.referenceId || '', colX[4] + (colWidths[4] / 2), rowY + 5.5, { align: 'center' });
+            doc.text(result.reportNo || '', colX[5] + (colWidths[5] / 2), rowY + 5.5, { align: 'center' });  // Use individual result's auto-generated Report No.
+
+            // Row border
+            doc.rect(marginLeft, rowY, usableWidth, 8);
+
+            rowY += 8;
+        });
+
+        // ============ PAGE 3+: Macro Analysis (Paginated - max 6 samples per page) ============
+        const maxSamplesPerPage = 6;
+        const numAnalysisPages = Math.ceil(typeResults.length / maxSamplesPerPage);
+
+        for (let pageIdx = 0; pageIdx < numAnalysisPages; pageIdx++) {
+            const startIdx = pageIdx * maxSamplesPerPage;
+            const endIdx = Math.min(startIdx + maxSamplesPerPage, typeResults.length);
+            const pageResults = typeResults.slice(startIdx, endIdx);
+
+            doc.addPage();
+
+            // Header
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ALCHEMY Laboratory & Services Sdn Bhd', 105, 20, { align: 'center' });
+
+            // Sheet title
+            doc.setFontSize(11);
+            const densityUnit = specimenType === 'Macrobenthos' ? 'unit m2' : 'units/L';
+            doc.text(`${specimenType} Data Sheet: Analysed density per sample/${densityUnit}`, 105, 28, { align: 'center' });
+
+            // Page number if multiple pages
+            if (numAnalysisPages > 1) {
+                doc.setFontSize(9);
+                doc.text(`(Page ${pageIdx + 1} of ${numAnalysisPages})`, 105, 34, { align: 'center' });
+            }
+
+            // Build complete table data including info rows, taxonomy, and statistics
+            const tableData = [];
+
+            // Reference ID row
+            const refIdRow = ['Reference ID:', ...pageResults.map(r => r.referenceId || '')];
+            tableData.push(refIdRow);
+
+            // Sample Marking row
+            const sampleMarkingRow = ['Sample Marking:', ...pageResults.map(r => r.stationId || '')];
+            tableData.push(sampleMarkingRow);
+
+            // Area/Volume row
+            const areaLabel = specimenType === 'Macrobenthos' ? 'Area of grab (m2)' : 'Filtered Volume (L)';
+            const areaRow = [areaLabel, ...pageResults.map(r => {
+                const value = specimenType === 'Macrobenthos'
+                    ? (r.areaOfGrab || 0.3)
+                    : (r.filteredVolume || 1);
+                return String(value);
+            })];
+            tableData.push(areaRow);
+
+            // Build taxonomy data
+            const taxonomyTree = buildTaxonomyTree(pageResults);
+            const taxonomyRows = buildTaxonomyTableForPDF(taxonomyTree, pageResults);
+            tableData.push(...taxonomyRows);
+
+            // Empty separator row
+            tableData.push(['', ...new Array(pageResults.length).fill('')]);
+
+            // Summary statistics
+            // Total Number of Taxa
+            const taxaCounts = calculateTaxaCounts(pageResults);
+            tableData.push(['Total Number of Taxa:', ...taxaCounts.map(c => String(c))]);
+
+            // Overall density
+            const densityLabel2 = specimenType === 'Macrobenthos' ? 'Overall density(units/m2):' : 'Overall density(units/L):';
+            const overallDensities = calculateOverallDensities(pageResults);
+            tableData.push([densityLabel2, ...overallDensities.map(d => d.toFixed(2))]);
+
+            // Taxa diversity Index (H')
+            const shannonIndices = calculateShannonIndices(pageResults);
+            tableData.push(["Taxa diversity Index (H'):", ...shannonIndices.map(i => i.toFixed(4))]);
+
+            // Evenness Index (J')
+            const evennessIndices = calculateEvennessIndices(pageResults);
+            tableData.push(["Eveness Index (J'):", ...evennessIndices.map(i => i.toFixed(4))]);
+
+            // Render complete table with custom formatting
+            const infoY = 38;
+            const areaOfGrabRowIndex = 2; // Row 3 (0-indexed: 0=RefID, 1=SampleMarking, 2=Area)
+            const totalTaxaRowIndex = tableData.length - 4; // Total Number of Taxa row
+
+            doc.autoTable({
+                startY: infoY,
+                body: tableData,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    lineWidth: 0.1, // Thin grey lines
+                    lineColor: [128, 128, 128], // Grey color
+                    textColor: [0, 0, 0], // Black text
+                },
+                columnStyles: {
+                    0: { cellWidth: 60, halign: 'left', fontStyle: 'bold' },
+                    // Center-align all sample columns (columns 1+)
+                    ...Object.fromEntries(
+                        Array.from({ length: pageResults.length }, (_, i) => [i + 1, { halign: 'center' }])
+                    ),
+                },
+                margin: { left: marginLeft, right: marginRight },
+                didParseCell: function(data) {
+                    // Default line widths - thin horizontal, bold vertical
+                    const defaultLineWidth = {
+                        top: 0.1,      // Thin grey horizontal
+                        right: 0.3,    // Bold vertical
+                        bottom: 0.1,   // Thin grey horizontal
+                        left: 0.3      // Bold vertical
+                    };
+                    data.cell.styles.lineWidth = defaultLineWidth;
+                    data.cell.styles.lineColor = [128, 128, 128];
+
+                    // Bold line after Area of grab row (before first taxonomy)
+                    if (data.row.index === areaOfGrabRowIndex) {
+                        data.cell.styles.lineWidth = {
+                            top: 0.1,
+                            right: 0.3,    // Bold vertical
+                            bottom: 0.5,   // Bold bottom border
+                            left: 0.3      // Bold vertical
+                        };
+                        data.cell.styles.lineColor = {
+                            top: [128, 128, 128],
+                            right: [128, 128, 128],
+                            bottom: [0, 0, 0],  // Black bottom border
+                            left: [128, 128, 128]
+                        };
+                    }
+
+                    // Bold line before Total Number of Taxa
+                    if (data.row.index === totalTaxaRowIndex) {
+                        data.cell.styles.lineWidth = {
+                            top: 0.5,      // Bold top border
+                            right: 0.3,    // Bold vertical
+                            bottom: 0.1,
+                            left: 0.3      // Bold vertical
+                        };
+                        data.cell.styles.lineColor = {
+                            top: [0, 0, 0],  // Black top border
+                            right: [128, 128, 128],
+                            bottom: [128, 128, 128],
+                            left: [128, 128, 128]
+                        };
+                    }
+                },
+            });
+        }
+    }
+
+    // Download
+    const timestamp = new Date().toISOString().split('T')[0];
+    doc.save(`analysis_report_${timestamp}.pdf`);
+
+    setStatus(`Generated PDF report with ${selectedResults.size} samples`);
+
+    // Save report log
+    const firstResult = selectedData[0];
+    saveReportLog({
+        clientName: firstResult.clientName,
+        institution: institution || firstResult.institution,
+        referenceId: firstResult.referenceId,
+        reportCover: reportNo,
+        dateReceived: firstResult.dateReceived,
+        numberOfSamples: selectedData.length,
+        reportType: 'PDF',
+        specimenType: specimenTypes.join(', ')
+    });
 });

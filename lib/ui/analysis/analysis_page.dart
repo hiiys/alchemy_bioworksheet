@@ -173,11 +173,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
       title: AppPageTitles.analysis,
       actions: [
         IconButton(
-          icon: const Icon(Icons.cloud_upload),
-          onPressed: () => _uploadAnalysis(appState),
-          tooltip: 'Upload to Firebase',
-        ),
-        IconButton(
           icon: const Icon(Icons.check_circle),
           onPressed: () async {
             await appState.markActiveSampleCompleted();

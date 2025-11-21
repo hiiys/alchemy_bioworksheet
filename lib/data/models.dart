@@ -414,6 +414,7 @@ class AnalysisResult {
   final String? institution;
   final String? reportNo;
   final String? referenceId;
+  final DateTime? dateReceived;
 
   // Calculation parameters
   final double? areaOfGrab; // m² for macrobenthos
@@ -439,6 +440,7 @@ class AnalysisResult {
     this.institution,
     this.reportNo,
     this.referenceId,
+    this.dateReceived,
     this.areaOfGrab,
     this.filteredVolume,
     this.dilutionFactor,
@@ -462,6 +464,7 @@ class AnalysisResult {
       'institution': institution,
       'reportNo': reportNo,
       'referenceId': referenceId,
+      'dateReceived': dateReceived?.toIso8601String(),
       'areaOfGrab': areaOfGrab,
       'filteredVolume': filteredVolume,
       'dilutionFactor': dilutionFactor,
@@ -492,6 +495,9 @@ class AnalysisResult {
       institution: m['institution'] as String?,
       reportNo: m['reportNo'] as String?,
       referenceId: m['referenceId'] as String?,
+      dateReceived: m['dateReceived'] != null
+          ? DateTime.parse(m['dateReceived'] as String)
+          : null,
       areaOfGrab: m['areaOfGrab'] as double?,
       filteredVolume: m['filteredVolume'] as double?,
       dilutionFactor: m['dilutionFactor'] as double?,

@@ -9,6 +9,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <!-- Excel and PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -37,8 +41,15 @@
             </div>
         </header>
 
-        <!-- Specimen Type Tabs -->
+        <!-- Main Navigation Tabs -->
         <nav class="tabs">
+            <button class="nav-tab active" data-page="taxonomy">Taxonomy</button>
+            <button class="nav-tab" data-page="reporting">Reporting</button>
+            <button class="nav-tab" data-page="report-log">Report Log</button>
+        </nav>
+
+        <!-- Specimen Type Tabs (for Taxonomy page) -->
+        <nav class="tabs" id="specimen-tabs">
             <button class="tab active" data-type="Macrobenthos">Macrobenthos</button>
             <button class="tab" data-type="Zooplankton">Zooplankton</button>
             <button class="tab" data-type="Phytoplankton">Phytoplankton</button>
@@ -46,48 +57,157 @@
 
         <!-- Main Content -->
         <main>
-            <!-- Toolbar -->
-            <div class="toolbar">
-                <button id="add-root-btn" class="btn-primary">+ Add Root Taxon</button>
-                <button id="import-csv-btn" class="btn-secondary">Import CSV</button>
-                <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
-                <button id="review-changes-btn" class="btn-secondary">Review Changes <span id="pending-count-badge" class="badge hidden">0</span></button>
-                <button id="analysis-results-btn" class="btn-secondary">Analysis Results</button>
-                <button id="help-btn" class="btn-secondary">Help</button>
-                <button id="refresh-btn">Refresh</button>
-                <span id="taxa-count"></span>
-            </div>
-
-            <!-- Taxonomy Tree -->
-            <div class="content-area">
-                <div id="taxonomy-tree" class="tree-container">
-                    <p class="loading">Loading taxonomy...</p>
+            <!-- Taxonomy Page -->
+            <div id="taxonomy-page" class="page-content">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <button id="add-root-btn" class="btn-primary">+ Add Root Taxon</button>
+                    <button id="import-csv-btn" class="btn-secondary">Import CSV</button>
+                    <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
+                    <button id="review-changes-btn" class="btn-secondary">Review Changes <span id="pending-count-badge" class="badge hidden">0</span></button>
+                    <button id="help-btn" class="btn-secondary">Help</button>
+                    <button id="refresh-btn">Refresh</button>
+                    <span id="taxa-count"></span>
                 </div>
 
-                <!-- Details Panel -->
-                <div id="details-panel" class="details-panel hidden">
-                    <h3 id="details-title">Taxon Details</h3>
-                    <form id="taxon-form">
-                        <input type="hidden" id="taxon-id">
-                        <input type="hidden" id="taxon-parent-id">
+                <!-- Taxonomy Tree -->
+                <div class="content-area">
+                    <div id="taxonomy-tree" class="tree-container">
+                        <p class="loading">Loading taxonomy...</p>
+                    </div>
 
-                        <label>Name:</label>
-                        <input type="text" id="taxon-name" required>
+                    <!-- Details Panel -->
+                    <div id="details-panel" class="details-panel hidden">
+                        <h3 id="details-title">Taxon Details</h3>
+                        <form id="taxon-form">
+                            <input type="hidden" id="taxon-id">
+                            <input type="hidden" id="taxon-parent-id">
 
-                        <label>Rank:</label>
-                        <select id="taxon-rank" required>
-                            <option value="">Select rank...</option>
-                        </select>
+                            <label>Name:</label>
+                            <input type="text" id="taxon-name" required>
 
-                        <label>Notes:</label>
-                        <textarea id="taxon-notes" rows="3"></textarea>
+                            <label>Rank:</label>
+                            <select id="taxon-rank" required>
+                                <option value="">Select rank...</option>
+                            </select>
+
+                            <label>Notes:</label>
+                            <textarea id="taxon-notes" rows="3"></textarea>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Save</button>
+                                <button type="button" id="cancel-btn">Cancel</button>
+                                <button type="button" id="delete-btn" class="btn-danger">Delete</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reporting Page -->
+            <div id="reporting-page" class="page-content hidden">
+                <!-- Reporting Specimen Type Tabs -->
+                <nav class="tabs">
+                    <button class="tab active" data-type="Macrobenthos">Macrobenthos</button>
+                    <button class="tab" data-type="Zooplankton">Zooplankton</button>
+                    <button class="tab" data-type="Phytoplankton">Phytoplankton</button>
+                </nav>
+
+                <div class="reporting-container">
+                    <!-- Report Information Form -->
+                    <div class="report-info-panel">
+                        <h3>Report Information</h3>
+                        <form id="report-info-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>SAMM No.:</label>
+                                    <input type="text" id="samm-no" placeholder="Enter SAMM number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Report cover:</label>
+                                    <input type="text" id="report-no" placeholder="Auto-generated from selected results" readonly>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Institution:</label>
+                                    <input type="text" id="institution" placeholder="Enter institution name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Authorised by:</label>
+                                    <input type="text" id="authorised-by" placeholder="Enter authoriser name">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Client Address:</label>
+                                    <textarea id="client-address" rows="3" placeholder="Enter client address"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="save-report-info-btn" class="btn-primary">Save Report Info</button>
+                                <button type="button" id="clear-report-info-btn" class="btn-secondary">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Analysis Results Section -->
+                    <div class="analysis-results-section">
+                        <h3 id="results-section-title">Macrobenthos Analysis Results</h3>
+                        <p>View and export analysis results uploaded from mobile devices.</p>
+
+                        <div class="filter-bar">
+                            <label>Client: </label>
+                            <input type="text" id="results-client-filter" placeholder="Filter by client...">
+                            <button id="results-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+                        </div>
+
+                        <div id="results-summary" class="results-summary">
+                            <span id="results-count">0 results</span>
+                            <span id="selected-count" style="margin-left: 15px;">0 selected</span>
+                        </div>
+
+                        <div id="analysis-results-list" class="analysis-results-container">
+                            <p class="loading">Loading analysis results...</p>
+                        </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Save</button>
-                            <button type="button" id="cancel-btn">Cancel</button>
-                            <button type="button" id="delete-btn" class="btn-danger">Delete</button>
+                            <button type="button" id="generate-excel-btn" class="btn-primary" disabled>Generate Excel Report</button>
+                            <button type="button" id="generate-pdf-btn" class="btn-primary" disabled>Generate PDF Report</button>
+                            <button type="button" id="export-selected-btn" class="btn-secondary" disabled>Export CSV</button>
+                            <button type="button" id="select-all-results-btn" class="btn-secondary">Select All</button>
+                            <button type="button" id="deselect-all-results-btn" class="btn-secondary">Deselect All</button>
                         </div>
-                    </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Log Page -->
+            <div id="report-log-page" class="page-content hidden">
+                <h2>Report Generation Log</h2>
+                <p>Track all reports generated from the admin panel.</p>
+
+                <div class="filter-bar">
+                    <label>Client: </label>
+                    <input type="text" id="log-client-filter" placeholder="Filter by client...">
+                    <label style="margin-left: 15px;">Date From: </label>
+                    <input type="date" id="log-date-from">
+                    <label style="margin-left: 15px;">Date To: </label>
+                    <input type="date" id="log-date-to">
+                    <button id="log-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+                    <button id="log-clear-btn" class="btn-secondary">Clear</button>
+                </div>
+
+                <div id="log-summary" class="results-summary">
+                    <span id="log-count">0 logs</span>
+                </div>
+
+                <div id="report-log-list" class="report-log-container">
+                    <p class="loading">Loading report logs...</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="export-log-btn" class="btn-secondary">Export CSV</button>
                 </div>
             </div>
         </main>
@@ -249,44 +369,8 @@
         </div>
     </div>
 
-    <!-- Analysis Results Modal -->
-    <div id="analysis-results-modal" class="modal hidden">
-        <div class="modal-content modal-wide">
-            <h3>Analysis Results</h3>
-            <p>View and export analysis results uploaded from mobile devices.</p>
-
-            <div class="filter-bar">
-                <label>Specimen Type: </label>
-                <select id="results-type-filter">
-                    <option value="all">All Types</option>
-                    <option value="Macrobenthos">Macrobenthos</option>
-                    <option value="Zooplankton">Zooplankton</option>
-                    <option value="Phytoplankton">Phytoplankton</option>
-                </select>
-                <label style="margin-left: 15px;">Client: </label>
-                <input type="text" id="results-client-filter" placeholder="Filter by client...">
-                <button id="results-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
-            </div>
-
-            <div id="results-summary" class="results-summary">
-                <span id="results-count">0 results</span>
-                <span id="selected-count" style="margin-left: 15px;">0 selected</span>
-            </div>
-
-            <div id="analysis-results-list" class="analysis-results-container">
-                <p class="loading">Loading analysis results...</p>
-            </div>
-
-            <div class="form-actions">
-                <button type="button" id="export-selected-btn" class="btn-primary" disabled>Export Selected to CSV</button>
-                <button type="button" id="select-all-results-btn" class="btn-secondary">Select All</button>
-                <button type="button" id="deselect-all-results-btn" class="btn-secondary">Deselect All</button>
-                <button type="button" id="results-close-btn">Close</button>
-            </div>
-        </div>
-    </div>
-
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/report_log.js"></script>
 </body>
 </html>

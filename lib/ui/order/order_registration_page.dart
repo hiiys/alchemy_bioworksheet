@@ -17,10 +17,7 @@ class OrderRegistrationPage extends StatefulWidget {
 class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   final _clientNameController = TextEditingController();
-  final _clientAddressController = TextEditingController();
   final _gearUsedController = TextEditingController();
-  final _methodController = TextEditingController();
-  final _reportNoController = TextEditingController();
   final _commentsController = TextEditingController();
   final _numSamplesController = TextEditingController(text: '1');
   final _numReplicatesController = TextEditingController(text: '1');
@@ -34,8 +31,6 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
   final _filteredVolumeController = TextEditingController();
 
   // New reporting fields
-  final _sammNoController = TextEditingController();
-  final _authorizedByController = TextEditingController();
   final _institutionController = TextEditingController();
   final _sampleDescriptionController = TextEditingController();
 
@@ -51,10 +46,7 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
   @override
   void dispose() {
     _clientNameController.dispose();
-    _clientAddressController.dispose();
     _gearUsedController.dispose();
-    _methodController.dispose();
-    _reportNoController.dispose();
     _commentsController.dispose();
     _areaOfGrabController.dispose();
     _sieveSizeController.dispose();
@@ -64,8 +56,6 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
     _filteredVolumeController.dispose();
     _numSamplesController.dispose();
     _numReplicatesController.dispose();
-    _sammNoController.dispose();
-    _authorizedByController.dispose();
     _institutionController.dispose();
     _sampleDescriptionController.dispose();
     _towDistanceController.dispose();
@@ -97,13 +87,7 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
                 required: true,
               ),
               const SizedBox(height: 12),
-              _textField(_clientAddressController, 'Client Address'),
-              const SizedBox(height: 12),
               _textField(_institutionController, 'Institution'),
-              const SizedBox(height: 12),
-              _textField(_sammNoController, 'SAMM No.'),
-              const SizedBox(height: 12),
-              _textField(_authorizedByController, 'Authorized By'),
               const SizedBox(height: 12),
               _readOnly('Type of Sample', widget.specimenType),
               const SizedBox(height: 12),
@@ -153,10 +137,6 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
                 const SizedBox(height: 12),
                 _textField(_srCellsCountedController, 'No. of SR cells counted'),
               ],
-              const SizedBox(height: 12),
-              _textField(_methodController, 'Method of Analysis'),
-              const SizedBox(height: 12),
-              _textField(_reportNoController, 'Report No.'),
               const SizedBox(height: 12),
               _textField(_commentsController, 'Comments', maxLines: 3),
               const SizedBox(height: 20),
@@ -224,7 +204,7 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
   Widget _numberFieldCtrl(
     TextEditingController controller,
     String label,
-    void Function(int) onSubmitted,
+    void Function(int) onChanged,
   ) {
     return TextFormField(
       controller: controller,
@@ -234,10 +214,10 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
       ),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      onFieldSubmitted: (v) {
+      onChanged: (v) {
         final n = int.tryParse(v.trim());
-        if (n != null) {
-          onSubmitted(n);
+        if (n != null && n > 0) {
+          onChanged(n);
         }
       },
     );
@@ -251,9 +231,7 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
     final appState = Provider.of<AppState>(context, listen: false);
     final order = OrderInfo(
       clientName: _clientNameController.text.trim(),
-      clientAddress: _clientAddressController.text.trim().isEmpty
-          ? null
-          : _clientAddressController.text.trim(),
+      clientAddress: null, // Will be filled in web admin
       specimenType: widget.specimenType,
       numberOfSamples: _numberOfSamples,
       numberOfReplicates: _numberOfReplicates,
@@ -280,23 +258,15 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
       filteredVolume: _filteredVolumeController.text.trim().isEmpty
           ? null
           : _filteredVolumeController.text.trim(),
-      methodAnalysis: _methodController.text.trim().isEmpty
-          ? null
-          : _methodController.text.trim(),
-      reportNo: _reportNoController.text.trim().isEmpty
-          ? null
-          : _reportNoController.text.trim(),
+      methodAnalysis: null, // Will be filled in web admin
+      reportNo: null, // Will be filled in web admin
       referenceId: null,
       comments: _commentsController.text.trim().isEmpty
           ? null
           : _commentsController.text.trim(),
       // New reporting fields
-      sammNo: _sammNoController.text.trim().isEmpty
-          ? null
-          : _sammNoController.text.trim(),
-      authorizedBy: _authorizedByController.text.trim().isEmpty
-          ? null
-          : _authorizedByController.text.trim(),
+      sammNo: null, // Will be filled in web admin
+      authorizedBy: null, // Will be filled in web admin
       institution: _institutionController.text.trim().isEmpty
           ? null
           : _institutionController.text.trim(),
@@ -476,9 +446,9 @@ class _OrderRegistrationPageState extends State<OrderRegistrationPage> {
                                   clientName: order.clientName,
                                   clientAddress: order.clientAddress,
                                   specimenType: order.specimenType,
-                                  numberOfSamples: samples.length,
+                                  numberOfSamples: order.numberOfSamples,  // Keep original number of samples
                                   numberOfReplicates: order.numberOfReplicates,
-                                  dateReceived: order.dateReceived,
+                                  dateReceived: dateReceived,
                                   dateAnalysis: order.dateAnalysis,
                                   gearUsed: order.gearUsed,
                                   areaOfGrab: order.areaOfGrab,

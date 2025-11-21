@@ -111,10 +111,8 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
     final appState = Provider.of<AppState>(context, listen: false);
     // Editable controllers
     final cName = TextEditingController(text: order.clientName);
-    final cAddr = TextEditingController(text: order.clientAddress ?? '');
 
     final method = TextEditingController(text: order.methodAnalysis ?? '');
-    final reportNo = TextEditingController(text: order.reportNo ?? '');
     final gear = TextEditingController(text: order.gearUsed ?? '');
     final area = TextEditingController(text: order.areaOfGrab ?? '');
     final sieve = TextEditingController(text: order.sieveSize ?? '');
@@ -154,11 +152,6 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   field('Client', cName),
-                  const SizedBox(height: 8),
-                  field('Client Address', cAddr),
-                  const SizedBox(height: 8),
-
-                  const SizedBox.shrink(),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -232,8 +225,6 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                   const SizedBox(height: 8),
                   field('Method of Analysis', method),
                   const SizedBox(height: 8),
-                  field('Report No.', reportNo),
-                  const SizedBox(height: 8),
                   field('Comments', comments),
                 ],
               ),
@@ -249,9 +240,7 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                     final updated = OrderInfo(
                       id: order.id,
                       clientName: cName.text.trim(),
-                      clientAddress: cAddr.text.trim().isEmpty
-                          ? null
-                          : cAddr.text.trim(),
+                      clientAddress: order.clientAddress,
                       specimenType: order.specimenType,
                       numberOfSamples: order.numberOfSamples,
                       numberOfReplicates: order.numberOfReplicates,
@@ -281,10 +270,7 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                       methodAnalysis: method.text.trim().isEmpty
                           ? null
                           : method.text.trim(),
-                      reportNo: reportNo.text.trim().isEmpty
-                          ? null
-                          : reportNo.text.trim(),
-
+                      reportNo: order.reportNo,
                       comments: comments.text.trim().isEmpty
                           ? null
                           : comments.text.trim(),

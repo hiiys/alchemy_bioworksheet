@@ -17,6 +17,69 @@ class AnalysisUploadService {
     return _firestore.collection('analysis_results');
   }
 
+  /// Generate next unique Report No. for a specimen type
+  /// Format: TR/BM/00001/25 (Macrobenthos), TR/BP/00001/25 (Phytoplankton), TR/BZ/00001/25 (Zooplankton)
+  Future<String> _generateReportNo(String specimenType) async {
+    // Get prefix based on specimen type
+    String prefix;
+    switch (specimenType) {
+      case 'Macrobenthos':
+        prefix = 'TR/BM/';
+        break;
+      case 'Phytoplankton':
+        prefix = 'TR/BP/';
+        break;
+      case 'Zooplankton':
+        prefix = 'TR/BZ/';
+        break;
+      default:
+        prefix = 'TR/XX/';
+    }
+
+    // Get current year's last 2 digits
+    final year = DateTime.now().year % 100;
+    final yearStr = year.toString().padLeft(2, '0');
+
+    try {
+      // Query all existing report numbers for this specimen type
+      final snapshot = await _analysisResultsRef
+          .where('specimenType', isEqualTo: specimenType)
+          .get();
+
+      int maxSequence = 0;
+
+      // Parse existing report numbers to find the highest sequence number
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final reportNo = data['reportNo'] as String?;
+
+        if (reportNo != null && reportNo.startsWith(prefix)) {
+          // Extract the 5-digit sequence number
+          // Format: TR/BM/00001/25 -> extract "00001"
+          final parts = reportNo.split('/');
+          if (parts.length >= 3) {
+            final sequenceStr = parts[2];
+            final sequence = int.tryParse(sequenceStr);
+            if (sequence != null && sequence > maxSequence) {
+              maxSequence = sequence;
+            }
+          }
+        }
+      }
+
+      // Increment sequence number
+      final nextSequence = maxSequence + 1;
+      final sequenceStr = nextSequence.toString().padLeft(5, '0');
+
+      // Format: TR/BM/00001/25
+      return '$prefix$sequenceStr/$yearStr';
+    } catch (e) {
+      print('Error generating report number: $e');
+      // Fallback to 00001 if there's an error
+      return '$prefix${'1'.padLeft(5, '0')}/$yearStr';
+    }
+  }
+
   /// Upload a completed sample analysis to Firebase
   Future<String?> uploadSampleAnalysis({
     required int sampleId,
@@ -101,6 +164,10 @@ class AnalysisUploadService {
         }
       }
 
+      // Auto-generate unique Report No.
+      final reportNo = await _generateReportNo(sample.sampleType);
+      print('Generated Report No: $reportNo');
+
       // Create analysis result
       final analysisResult = AnalysisResult(
         orderId: sample.orderId ?? 0,
@@ -116,8 +183,9 @@ class AnalysisUploadService {
         sammNo: order?.sammNo,
         authorizedBy: order?.authorizedBy,
         institution: order?.institution,
-        reportNo: order?.reportNo,
+        reportNo: reportNo,  // Use auto-generated Report No.
         referenceId: order?.referenceId ?? sample.receiveId,
+        dateReceived: order?.dateReceived,
         areaOfGrab: _parseDouble(order?.areaOfGrab),
         filteredVolume: _parseDouble(order?.filteredVolume),
         dilutionFactor: dilutionFactor,

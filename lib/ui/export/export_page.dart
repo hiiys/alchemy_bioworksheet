@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../core/app_state.dart';
 import '../../core/routing.dart';
+import '../../services/analysis_upload_service.dart';
 import '../widgets/app_scaffold.dart';
 
 class ExportPage extends StatefulWidget {
@@ -123,45 +125,17 @@ class _ExportPageState extends State<ExportPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                FilledButton.icon(
-                  onPressed:
-                      _isExporting ||
-                          _selectedClient == null ||
-                          _selectedSampleIds.isEmpty
-                      ? null
-                      : () async {
-                          setState(() {
-                            _isExporting = true;
-                            _generatedFiles.clear();
-                          });
-                          try {
-                            final file = await appState.exportCsvForSampleIds(
-                              client: _selectedClient!,
-                              sampleIds: _selectedSampleIds.toList(),
-                              specimenType: _exportType,
-                            );
-                            setState(() {
-                              _generatedFiles = [file];
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Exported: $file')),
-                            );
-                          } finally {
-                            setState(() => _isExporting = false);
-                          }
-                        },
-                  icon: const Icon(Icons.file_download),
-                  label: const Text('Export CSV'),
-                ),
-                const SizedBox(width: 16),
-                FilledButton.icon(
-                  onPressed: _generatedFiles.isEmpty
-                      ? null
-                      : () => Share.shareXFiles(
-                          _generatedFiles.map((p) => XFile(p)).toList(),
-                        ),
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share Results'),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed:
+                        _isExporting ||
+                            _selectedClient == null ||
+                            _selectedSampleIds.isEmpty
+                        ? null
+                        : () => _uploadSelectedSamples(appState),
+                    icon: const Icon(Icons.cloud_upload),
+                    label: const Text('Upload'),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 if (_isExporting) const CircularProgressIndicator(),
@@ -177,6 +151,112 @@ class _ExportPageState extends State<ExportPage> {
 
   String _fmt(DateTime d) =>
       '${d.year}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _uploadSelectedSamples(AppState appState) async {
+    if (_selectedSampleIds.isEmpty) return;
+
+    // Get device ID
+    String deviceId = 'unknown';
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      deviceId = androidInfo.id;
+    } catch (e) {
+      print('Error getting device info: $e');
+    }
+
+    // Show loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Uploading ${_selectedSampleIds.length} sample(s)...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final uploadService = AnalysisUploadService();
+      int uploaded = 0;
+      int alreadyUploaded = 0;
+      int failed = 0;
+
+      for (final sampleId in _selectedSampleIds) {
+        try {
+          // Check if already uploaded
+          final exists = await uploadService.isSampleUploaded(
+            sampleId,
+            deviceId,
+          );
+
+          if (exists) {
+            alreadyUploaded++;
+            continue;
+          }
+
+          // Upload
+          final docId = await uploadService.uploadSampleAnalysis(
+            sampleId: sampleId,
+            deviceId: deviceId,
+          );
+
+          if (docId != null) {
+            uploaded++;
+          } else {
+            failed++;
+          }
+        } catch (e) {
+          print('Error uploading sample $sampleId: $e');
+          failed++;
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      // Show result
+      String message = '';
+      Color color = Colors.green;
+
+      if (uploaded > 0) {
+        message = 'Successfully uploaded $uploaded sample(s)';
+      }
+      if (alreadyUploaded > 0) {
+        if (message.isNotEmpty) message += '\n';
+        message += '$alreadyUploaded sample(s) already uploaded';
+        color = Colors.orange;
+      }
+      if (failed > 0) {
+        if (message.isNotEmpty) message += '\n';
+        message += '$failed sample(s) failed to upload';
+        color = Colors.red;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Widget _buildResultsList(AppState appState) {
     if (_selectedClient == null) {

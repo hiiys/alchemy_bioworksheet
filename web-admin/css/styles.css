@@ -135,6 +135,27 @@ header h1 {
     border-bottom-color: #2196F3;
 }
 
+/* Main Navigation Tabs */
+.nav-tab {
+    padding: 15px 30px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+}
+
+.nav-tab:hover {
+    background: #f5f5f5;
+}
+
+.nav-tab.active {
+    color: #2196F3;
+    border-bottom-color: #2196F3;
+    font-weight: 500;
+}
+
 /* Toolbar */
 .toolbar {
     padding: 15px 20px;
@@ -805,6 +826,118 @@ header h1 {
 .result-actions button {
     padding: 4px 8px;
     font-size: 11px;
+}
+
+/* Page Content */
+.page-content {
+    display: block;
+}
+
+.page-content.hidden {
+    display: none !important;
+}
+
+/* Reporting Page Styles */
+.reporting-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.report-info-panel {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.report-info-panel h3 {
+    color: #2196F3;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.analysis-results-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-results-section h3 {
+    color: #2196F3;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.analysis-results-section p {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+/* Report Log Styles */
+.report-log-container {
+    background: white;
+    border-radius: 4px;
+    padding: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.report-log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.report-log-table th,
+.report-log-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.report-log-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #333;
+    position: sticky;
+    top: 0;
+}
+
+.report-log-table tr:hover {
+    background: #f9f9f9;
 }
 
 /* Footer */
