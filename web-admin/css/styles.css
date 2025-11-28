@@ -1011,22 +1011,23 @@ header h1 {
 
 .analysis-results-table th:first-child,
 .analysis-results-table td:first-child {
-    width: 40px;
+    width: 5%;
+    text-align: center;
 }
 
 .analysis-results-table th:nth-child(2),
 .analysis-results-table td:nth-child(2) {
-    width: 15%;
+    width: 13%;
 }
 
 .analysis-results-table th:nth-child(3),
 .analysis-results-table td:nth-child(3) {
-    width: 13%;
+    width: 12%;
 }
 
 .analysis-results-table th:nth-child(4),
 .analysis-results-table td:nth-child(4) {
-    width: 17%;
+    width: 18%;
 }
 
 .analysis-results-table th:nth-child(5),
@@ -1041,12 +1042,13 @@ header h1 {
 
 .analysis-results-table th:nth-child(7),
 .analysis-results-table td:nth-child(7) {
-    width: 10%;
+    width: 8%;
+    text-align: center;
 }
 
 .analysis-results-table th:nth-child(8),
 .analysis-results-table td:nth-child(8) {
-    width: 20%;
+    width: 19%;
 }
 
 /* Registration Page Styles */
