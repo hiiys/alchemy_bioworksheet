@@ -656,7 +656,19 @@ function parseHierarchicalCsv(lines, headers) {
 
     // Map to track unique taxa by name+rank combination
     const taxaMap = new Map();
-    let nextId = 1;
+
+    // Generate unique IDs based on specimen type to avoid conflicts
+    // Macrobenthos: 1-999999, Zooplankton: 1000000-1999999, Phytoplankton: 2000000-2999999
+    let nextId;
+    if (currentSpecimenType === 'Macrobenthos') {
+        nextId = 1;
+    } else if (currentSpecimenType === 'Zooplankton') {
+        nextId = 1000000;
+    } else if (currentSpecimenType === 'Phytoplankton') {
+        nextId = 2000000;
+    } else {
+        nextId = 3000000; // Default for other types
+    }
 
     // Define rank hierarchy
     const rankHierarchy = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
