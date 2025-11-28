@@ -633,6 +633,7 @@ header h1 {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
 }
 
 .pending-changes-table th,
@@ -928,6 +929,7 @@ header h1 {
     border-collapse: collapse;
     font-size: 13px;
     min-width: 1000px;
+    table-layout: fixed;
 }
 
 .report-log-table th,
@@ -1087,6 +1089,7 @@ header h1 {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
 }
 
 .orders-table th,
