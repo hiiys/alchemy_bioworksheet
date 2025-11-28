@@ -195,6 +195,25 @@ class AnalysisUploadService {
       final docRef = await _analysisResultsRef.add(analysisResult.toFirestore());
 
       print('Analysis uploaded successfully: ${docRef.id}');
+
+      // CRITICAL FIX: Update the sample in Firebase to mark it as completed
+      // This ensures the completed status persists and isn't overwritten by sync
+      if (sample.firebaseId != null) {
+        try {
+          await _firestore.collection('samples').doc(sample.firebaseId).update({
+            'completed': true,
+            'analyzedDate': sample.analyzedDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+            'updatedAt': DateTime.now().toIso8601String(),
+          });
+          print('Updated sample in Firebase with completed status');
+        } catch (e) {
+          print('Error updating sample completed status in Firebase: $e');
+          // Don't fail the upload if this update fails
+        }
+      } else {
+        print('Warning: Sample has no Firebase ID, cannot update completed status in Firebase');
+      }
+
       return docRef.id;
     } catch (e) {
       print('Error uploading analysis: $e');
