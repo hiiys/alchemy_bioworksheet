@@ -984,8 +984,8 @@ header h1 {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-    min-width: 1000px;
-    table-layout: fixed;
+    min-width: 1200px;
+    table-layout: auto;
 }
 
 .analysis-results-table th,
@@ -993,9 +993,6 @@ header h1 {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .analysis-results-table th {
@@ -1013,44 +1010,44 @@ header h1 {
 
 .analysis-results-table th:first-child,
 .analysis-results-table td:first-child {
-    width: 5%;
+    width: 50px;
     text-align: center;
 }
 
 .analysis-results-table th:nth-child(2),
 .analysis-results-table td:nth-child(2) {
-    width: 13%;
+    width: 120px;
 }
 
 .analysis-results-table th:nth-child(3),
 .analysis-results-table td:nth-child(3) {
-    width: 12%;
+    width: 140px;
 }
 
 .analysis-results-table th:nth-child(4),
 .analysis-results-table td:nth-child(4) {
-    width: 18%;
+    width: 180px;
 }
 
 .analysis-results-table th:nth-child(5),
 .analysis-results-table td:nth-child(5) {
-    width: 13%;
+    width: 120px;
 }
 
 .analysis-results-table th:nth-child(6),
 .analysis-results-table td:nth-child(6) {
-    width: 12%;
+    width: 120px;
 }
 
 .analysis-results-table th:nth-child(7),
 .analysis-results-table td:nth-child(7) {
-    width: 8%;
+    width: 80px;
     text-align: center;
 }
 
 .analysis-results-table th:nth-child(8),
 .analysis-results-table td:nth-child(8) {
-    width: 19%;
+    width: 180px;
 }
 
 /* Registration Page Styles */
