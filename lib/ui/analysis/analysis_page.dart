@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../../core/app_state.dart';
@@ -257,6 +258,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                 count: currentCount,
                 onIncrement: () => _incrementCount(appState),
                 onDecrement: () => _decrementCount(appState),
+                onCountTap: () => _showCountInputDialog(appState, currentCount),
                 totalCount: appState.totalCurrentCount,
                 onSearchTap: () {
                   setState(() {
@@ -437,6 +439,56 @@ class _AnalysisPageState extends State<AnalysisPage> {
   void _decrementCount(AppState appState) {
     if (_selectedTaxon != null) {
       appState.decrementCount(_selectedTaxon!.id!);
+    }
+  }
+
+  Future<void> _showCountInputDialog(AppState appState, int currentCount) async {
+    if (_selectedTaxon == null) return;
+
+    final controller = TextEditingController(text: currentCount.toString());
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Enter Count for ${_selectedTaxon!.name}'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Count',
+            border: OutlineInputBorder(),
+            hintText: 'Enter number',
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          onSubmitted: (value) {
+            final count = int.tryParse(value);
+            if (count != null && count >= 0) {
+              Navigator.of(context).pop(count);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final count = int.tryParse(controller.text);
+              if (count != null && count >= 0) {
+                Navigator.of(context).pop(count);
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await appState.setCount(_selectedTaxon!.id!, result);
     }
   }
 

@@ -7,6 +7,7 @@ class CounterBar extends StatelessWidget {
   final int count;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
+  final VoidCallback? onCountTap;
   final int totalCount;
   final VoidCallback onSearchTap;
 
@@ -16,6 +17,7 @@ class CounterBar extends StatelessWidget {
     required this.count,
     required this.onIncrement,
     required this.onDecrement,
+    this.onCountTap,
     required this.totalCount,
     required this.onSearchTap,
   }) : super(key: key);
@@ -139,25 +141,28 @@ class CounterBar extends StatelessWidget {
                       const SizedBox(width: 16),
                       // Count box in the center
                       Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: colorScheme.primary,
-                              width: 2,
+                        child: GestureDetector(
+                          onTap: onCountTap,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$count',
-                              style: theme.textTheme.displayMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
                                 color: colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '$count',
+                                style: theme.textTheme.displayMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
                               ),
                             ),
                           ),
