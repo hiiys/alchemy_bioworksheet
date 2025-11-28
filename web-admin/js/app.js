@@ -2263,7 +2263,24 @@ function buildTaxonomyTree(results) {
 
                 // If this is the final level (the taxon that was counted)
                 if (level === hierarchy.length - 1) {
-                    currentLevel[taxonName].densities[resultIndex] = count.density;
+                    // Recalculate density if missing
+                    let density = count.density;
+                    if (!density && count.count) {
+                        const countValue = parseInt(count.count) || 0;
+                        if (result.specimenType === 'Macrobenthos') {
+                            const areaOfGrab = result.areaOfGrab || 0.3;
+                            if (areaOfGrab > 0) {
+                                density = countValue / areaOfGrab;
+                            }
+                        } else {
+                            const filteredVolume = result.filteredVolume || 1;
+                            const dilutionFactor = result.dilutionFactor || 1;
+                            if (filteredVolume > 0) {
+                                density = (countValue * dilutionFactor) / filteredVolume;
+                            }
+                        }
+                    }
+                    currentLevel[taxonName].densities[resultIndex] = density;
                     currentLevel[taxonName].counts[resultIndex] = parseInt(count.count) || 0;
                 }
 
