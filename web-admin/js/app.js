@@ -404,6 +404,93 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
     }
 });
 
+// Delete all taxa for current specimen type
+document.getElementById('delete-all-btn').addEventListener('click', async () => {
+    const taxaCount = allTaxa.length;
+
+    if (taxaCount === 0) {
+        alert('No taxa to delete');
+        return;
+    }
+
+    const confirmation = confirm(
+        `⚠️ WARNING: This will delete ALL ${taxaCount} taxa for ${currentSpecimenType}!\n\n` +
+        `This action CANNOT be undone.\n\n` +
+        `Are you absolutely sure you want to continue?`
+    );
+
+    if (!confirmation) {
+        return;
+    }
+
+    // Double confirmation for safety
+    const doubleConfirm = confirm(
+        `FINAL CONFIRMATION:\n\n` +
+        `Delete all ${taxaCount} ${currentSpecimenType} taxa?\n\n` +
+        `Type OK in the next prompt to proceed.`
+    );
+
+    if (!doubleConfirm) {
+        return;
+    }
+
+    const finalCheck = prompt(
+        `Type "DELETE ALL" (in capital letters) to confirm deletion of all ${currentSpecimenType} taxa:`
+    );
+
+    if (finalCheck !== 'DELETE ALL') {
+        alert('Deletion cancelled - confirmation text did not match');
+        return;
+    }
+
+    setStatus('Deleting all taxa...');
+
+    try {
+        // Delete all taxa documents in batches (Firestore limit is 500 per batch)
+        const taxaRef = db.collection('taxonomies').doc(currentSpecimenType).collection('taxa');
+        const snapshot = await taxaRef.get();
+
+        let batch = db.batch();
+        let count = 0;
+        let totalDeleted = 0;
+
+        for (const doc of snapshot.docs) {
+            batch.delete(doc.ref);
+            count++;
+            totalDeleted++;
+
+            // Firestore batch limit is 500
+            if (count >= 500) {
+                await batch.commit();
+                batch = db.batch();
+                count = 0;
+                setStatus(`Deleting... ${totalDeleted}/${snapshot.size}`);
+            }
+        }
+
+        // Commit remaining deletes
+        if (count > 0) {
+            await batch.commit();
+        }
+
+        // Update metadata
+        await db.collection('taxonomies').doc(currentSpecimenType).set({
+            lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+            modifiedBy: auth.currentUser.email
+        }, { merge: true });
+
+        setStatus(`Successfully deleted all ${totalDeleted} taxa`);
+        hideDetailsPanel();
+        loadTaxonomy();
+
+        alert(`Successfully deleted all ${totalDeleted} ${currentSpecimenType} taxa`);
+    } catch (error) {
+        alert('Error deleting taxa: ' + error.message);
+        setStatus('Error deleting taxa');
+        console.error('Delete all error:', error);
+    }
+});
+
 // Add root taxon
 addRootBtn.addEventListener('click', () => {
     showAddModal(null);
