@@ -381,8 +381,11 @@
             </div>
 
             <div class="help-section">
-                <h4>CSV Import Format</h4>
-                <p>Import taxa in bulk using CSV files with the following columns:</p>
+                <h4>CSV Import Formats</h4>
+                <p>The system supports two CSV import formats. The format is automatically detected.</p>
+
+                <h5 style="margin-top: 15px;">Format 1: Standard Format (with parent-child relationships)</h5>
+                <p>Use this format when you want explicit control over the hierarchy:</p>
                 <table class="help-table">
                     <tr><th>Column</th><th>Required</th><th>Description</th></tr>
                     <tr><td>id</td><td>Yes</td><td>Unique numeric ID for the taxon</td></tr>
@@ -391,6 +394,23 @@
                     <tr><td>rank</td><td>Yes</td><td>Taxonomic rank (see valid ranks below)</td></tr>
                     <tr><td>notes</td><td>No</td><td>Optional notes or description</td></tr>
                 </table>
+                <p style="margin-top: 8px;"><em>Example: id,parentId,name,rank,notes</em></p>
+
+                <h5 style="margin-top: 20px;">Format 2: Hierarchical Format (automatic hierarchy)</h5>
+                <p>Use this format to automatically build the taxonomy hierarchy. IDs and parent-child relationships are created automatically:</p>
+                <table class="help-table">
+                    <tr><th>Column</th><th>Required</th><th>Description</th></tr>
+                    <tr><td>Taxa_ID</td><td>No</td><td>Optional reference ID (not used in database)</td></tr>
+                    <tr><td>Phylum</td><td>Yes*</td><td>Phylum name</td></tr>
+                    <tr><td>Class</td><td>Yes*</td><td>Class name</td></tr>
+                    <tr><td>Order</td><td>Yes*</td><td>Order name</td></tr>
+                    <tr><td>Family</td><td>Yes*</td><td>Family name</td></tr>
+                    <tr><td>Genus</td><td>Yes*</td><td>Genus name</td></tr>
+                    <tr><td>Species</td><td>No</td><td>Species name (optional)</td></tr>
+                </table>
+                <p style="margin-top: 8px;"><em>*At least one taxonomic rank must be provided. Empty cells are skipped.</em></p>
+                <p style="margin-top: 8px;"><em>Example: Taxa_ID,Phylum,Class,Order,Family,Genus</em></p>
+                <p style="margin-top: 8px;"><strong>Note:</strong> The hierarchical format automatically prevents duplicates and builds proper parent-child relationships.</p>
             </div>
 
             <div class="help-section">
