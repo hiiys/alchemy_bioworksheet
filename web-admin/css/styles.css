@@ -975,10 +975,8 @@ header h1 {
     background: white;
     border-radius: 4px;
     max-height: 600px;
-    overflow-x: auto;
-    overflow-y: auto;
+    overflow: auto;
     border: 1px solid #ddd;
-    position: relative;
 }
 
 .analysis-results-table {
@@ -987,8 +985,6 @@ header h1 {
     border-collapse: collapse;
     font-size: 13px;
     table-layout: auto;
-    margin: 0;
-    border-spacing: 0;
 }
 
 .analysis-results-table th,
@@ -1003,18 +999,10 @@ header h1 {
     background: #f5f5f5;
     font-weight: 600;
     color: #333;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.analysis-results-table thead tr {
-    display: table-row;
-}
-
-.analysis-results-table thead th {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #f5f5f5;
+    border-bottom: 2px solid #ddd;
 }
 
 .analysis-results-table tbody tr:hover {
