@@ -985,7 +985,7 @@ header h1 {
     border-collapse: collapse;
     font-size: 13px;
     min-width: 1200px;
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 .analysis-results-table th,
@@ -993,6 +993,9 @@ header h1 {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
 }
 
 .analysis-results-table th {
