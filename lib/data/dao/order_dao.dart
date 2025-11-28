@@ -29,6 +29,12 @@ class OrderDao {
     return OrderInfo.fromMap(rows.first);
   }
 
+  Future<List<OrderInfo>> getAllOrders() async {
+    final db = await _dbHelper.database;
+    final rows = await db.query('orders', orderBy: 'id DESC');
+    return rows.map((e) => OrderInfo.fromMap(e)).toList();
+  }
+
   Future<List<OrderInfo>> getOrdersByType(String specimenType) async {
     final db = await _dbHelper.database;
     final rows = await db.query(

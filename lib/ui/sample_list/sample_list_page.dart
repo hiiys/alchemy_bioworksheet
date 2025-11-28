@@ -15,6 +15,7 @@ class SampleListPage extends StatefulWidget {
 
 class _SampleListPageState extends State<SampleListPage> {
   String? selectedClient;
+  String selectedSpecimenType = 'All';
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +37,35 @@ class _SampleListPageState extends State<SampleListPage> {
 
     return AppScaffold(
       title: AppPageTitles.sampleList,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.sync),
+          tooltip: 'Sync from Firebase',
+          onPressed: () async {
+            // Show loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Syncing from Firebase...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+
+            // Sync from Firebase
+            final result = await appState.syncAllFromFirebase();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Synced ${result['orders']} orders and ${result['samples']} samples',
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
+        ),
+      ],
       body: appState.samples.isEmpty
           ? const Center(
               child: Column(
@@ -49,7 +79,7 @@ class _SampleListPageState extends State<SampleListPage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Create your first sample in Sample Info',
+                    'Create your first sample in Client Info',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ],
@@ -59,28 +89,87 @@ class _SampleListPageState extends State<SampleListPage> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: selectedClient,
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: '',
-                              child: Text('All Clients'),
-                            ),
-                            ...clients.map(
-                              (c) => DropdownMenuItem<String>(
-                                value: c,
-                                child: Text(c),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedSpecimenType,
+                              items: const [
+                                DropdownMenuItem<String>(
+                                  value: 'All',
+                                  child: Text('All Specimen Types'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'Macrobenthos',
+                                  child: Text('Macrobenthos'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'Phytoplankton',
+                                  child: Text('Phytoplankton'),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'Zooplankton',
+                                  child: Text('Zooplankton'),
+                                ),
+                              ],
+                              onChanged: (v) => setState(() => selectedSpecimenType = v ?? 'All'),
+                              decoration: const InputDecoration(
+                                labelText: 'Specimen Type',
+                                border: OutlineInputBorder(),
                               ),
                             ),
-                          ],
-                          onChanged: (v) => setState(() => selectedClient = v),
-                          decoration: const InputDecoration(
-                            labelText: 'Filter by Client ID',
-                            border: OutlineInputBorder(),
                           ),
+                          const SizedBox(width: 12),
+                          IconButton.filled(
+                            onPressed: () async {
+                              // Show loading indicator
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Syncing from Firebase...'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+
+                              // Sync from Firebase
+                              final result = await appState.syncAllFromFirebase();
+
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Synced ${result['orders']} orders and ${result['samples']} samples',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.sync),
+                            tooltip: 'Sync from Firebase',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedClient,
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: '',
+                            child: Text('All Clients'),
+                          ),
+                          ...clients.map(
+                            (c) => DropdownMenuItem<String>(
+                              value: c,
+                              child: Text(c),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => selectedClient = v),
+                        decoration: const InputDecoration(
+                          labelText: 'Filter by Client ID',
+                          border: OutlineInputBorder(),
                         ),
                       ),
                     ],
@@ -97,9 +186,11 @@ class _SampleListPageState extends State<SampleListPage> {
     final grouped = <String, List<Sample>>{};
     for (final s in appState.samples.where(
       (s) =>
-          selectedClient == null ||
+          (selectedClient == null ||
           selectedClient == '' ||
-          s.client == selectedClient,
+          s.client == selectedClient) &&
+          (selectedSpecimenType == 'All' ||
+          s.sampleType == selectedSpecimenType),
     )) {
       final key = (s.client == null || s.client!.isEmpty)
           ? 'Unknown Client'

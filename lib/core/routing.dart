@@ -14,7 +14,7 @@ class AppRoutes {
 
 class AppPageTitles {
   static const String home = 'Alchemy Biological Worksheet';
-  static const String sampleInfo = 'Sample Info';
+  static const String sampleInfo = 'Client Info';
   static const String sampleList = 'Sample List';
   static const String registration = 'Specimen Registration';
   static const String analysis = 'Macrobenthos Analysis';

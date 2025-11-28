@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../data/models.dart';
 
 class CounterBar extends StatelessWidget {
@@ -117,43 +118,64 @@ class CounterBar extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 6,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Count: $count',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onPrimaryContainer,
+                      // Minus button on the left
+                      IconButton(
+                        onPressed: onDecrement,
+                        icon: Icon(
+                          Icons.remove_circle,
+                          color: colorScheme.error,
+                          size: 40,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: onDecrement,
-                            icon: Icon(
-                              Icons.remove_circle,
-                              color: colorScheme.error,
-                              size: 28,
-                            ),
+                      const SizedBox(width: 16),
+                      // Count box in the center
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            onPressed: onIncrement,
-                            icon: Icon(
-                              Icons.add_circle,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
                               color: colorScheme.primary,
-                              size: 28,
+                              width: 2,
                             ),
                           ),
-                        ],
+                          child: Center(
+                            child: Text(
+                              '$count',
+                              style: theme.textTheme.displayMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Plus button on the right
+                      IconButton(
+                        onPressed: () {
+                          // Add haptic feedback - vibrate provides more noticeable feedback
+                          HapticFeedback.vibrate();
+                          onIncrement();
+                        },
+                        icon: Icon(
+                          Icons.add_circle,
+                          color: colorScheme.primary,
+                          size: 40,
+                        ),
                       ),
                     ],
                   ),

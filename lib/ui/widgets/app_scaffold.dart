@@ -51,7 +51,7 @@ class AppScaffold extends StatelessWidget {
           _buildNavButton(
             context,
             icon: Icons.description,
-            label: 'Sample Info',
+            label: 'Client Info',
             route: AppRoutes.sampleInfo,
             currentRoute: currentRoute,
           ),

@@ -28,6 +28,33 @@ class _HomePageState extends State<HomePage> {
       title: AppPageTitles.home,
       actions: [
         IconButton(
+          icon: const Icon(Icons.sync),
+          tooltip: 'Sync from Firebase',
+          onPressed: () async {
+            // Show loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Syncing from Firebase...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+
+            // Sync from Firebase
+            final result = await appState.syncAllFromFirebase();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Synced ${result['orders']} orders and ${result['samples']} samples',
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
+        ),
+        IconButton(
           icon: const Icon(Icons.delete_forever),
           tooltip: 'Reset Data',
           onPressed: () async {

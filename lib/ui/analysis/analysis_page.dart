@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../../core/app_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
 import '../../services/analysis_upload_service.dart';
@@ -36,12 +35,8 @@ class _AnalysisPageState extends State<AnalysisPage> {
       final appState = Provider.of<AppState>(context, listen: false);
       if (!appState.hasActiveSample) {
         _showNoActiveSampleDialog(context);
-      } else {
-        final s = appState.activeSample!;
-        if (s.biologistId == null || (s.biologistId?.trim().isEmpty ?? true)) {
-          _promptBiologistId(appState);
-        }
       }
+      // Biologist ID check removed - handled by home page before navigation
     });
   }
 
@@ -153,7 +148,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
               ),
               SizedBox(height: 8),
               Text(
-                'Please create a sample in Sample Info first',
+                'Please create a sample in Client Info first',
                 textAlign: TextAlign.center,
               ),
             ],
@@ -455,47 +450,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
       _searchController.clear();
       _searchFocusNode.unfocus();
     });
-  }
-
-  Future<void> _promptBiologistId(AppState appState) async {
-    final prefs = await SharedPreferences.getInstance();
-    final last = prefs.getString('last_biologist_id') ?? '';
-    final controller = TextEditingController(text: last);
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Biologist ID'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Biologist ID',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final id = controller.text.trim();
-              await appState.updateActiveSampleBiologist(id);
-              await prefs.setString('last_biologist_id', id);
-              // ignore: use_build_context_synchronously
-              Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Biologist set: $id')));
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showNoActiveSampleDialog(BuildContext context) {

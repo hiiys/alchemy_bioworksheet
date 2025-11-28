@@ -187,6 +187,22 @@ class DatabaseHelper {
     if (!sampleColNames.contains('biologistId')) {
       await db.execute('ALTER TABLE sample ADD COLUMN biologistId TEXT');
     }
+    // Firebase sync fields
+    if (!sampleColNames.contains('firebaseId')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN firebaseId TEXT');
+    }
+    if (!sampleColNames.contains('deviceId')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN deviceId TEXT');
+    }
+    if (!sampleColNames.contains('createdAt')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN createdAt INTEGER');
+    }
+    if (!sampleColNames.contains('updatedAt')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN updatedAt INTEGER');
+    }
+    if (!sampleColNames.contains('synced')) {
+      await db.execute('ALTER TABLE sample ADD COLUMN synced INTEGER DEFAULT 0');
+    }
 
     final taxonCols = await db.rawQuery("PRAGMA table_info(taxon)");
     final taxonColNames = taxonCols.map((c) => c['name'] as String).toSet();
@@ -267,6 +283,22 @@ class DatabaseHelper {
     }
     if (!orderColNames.contains('srCellsCounted')) {
       await db.execute('ALTER TABLE orders ADD COLUMN srCellsCounted INTEGER');
+    }
+    // Firebase sync fields
+    if (!orderColNames.contains('firebaseId')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN firebaseId TEXT');
+    }
+    if (!orderColNames.contains('deviceId')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN deviceId TEXT');
+    }
+    if (!orderColNames.contains('createdAt')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN createdAt INTEGER');
+    }
+    if (!orderColNames.contains('updatedAt')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN updatedAt INTEGER');
+    }
+    if (!orderColNames.contains('synced')) {
+      await db.execute('ALTER TABLE orders ADD COLUMN synced INTEGER DEFAULT 0');
     }
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_samples_order ON sample(orderId)',

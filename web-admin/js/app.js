@@ -25,6 +25,8 @@ const lastModified = document.getElementById('last-modified');
 const taxonomyPage = document.getElementById('taxonomy-page');
 const reportingPage = document.getElementById('reporting-page');
 const reportLogPage = document.getElementById('report-log-page');
+const ordersPage = document.getElementById('orders-page');
+const samplesPage = document.getElementById('samples-page');
 const specimenTabs = document.getElementById('specimen-tabs');
 const resultsSectionTitle = document.getElementById('results-section-title');
 
@@ -64,7 +66,7 @@ logoutBtn.addEventListener('click', () => {
     auth.signOut();
 });
 
-// Main navigation (Taxonomy/Reporting/Report Log) tab switching
+// Main navigation (Taxonomy/Reporting/Report Log/Orders/Samples) tab switching
 navTabs.forEach(navTab => {
     navTab.addEventListener('click', () => {
         navTabs.forEach(t => t.classList.remove('active'));
@@ -75,11 +77,15 @@ navTabs.forEach(navTab => {
             taxonomyPage.classList.remove('hidden');
             reportingPage.classList.add('hidden');
             reportLogPage.classList.add('hidden');
+            ordersPage.classList.add('hidden');
+            samplesPage.classList.add('hidden');
             specimenTabs.style.display = 'flex';
         } else if (page === 'reporting') {
             taxonomyPage.classList.add('hidden');
             reportingPage.classList.remove('hidden');
             reportLogPage.classList.add('hidden');
+            ordersPage.classList.add('hidden');
+            samplesPage.classList.add('hidden');
             specimenTabs.style.display = 'none';
             loadReportInfo();
             loadAnalysisResults();
@@ -87,8 +93,32 @@ navTabs.forEach(navTab => {
             taxonomyPage.classList.add('hidden');
             reportingPage.classList.add('hidden');
             reportLogPage.classList.remove('hidden');
+            ordersPage.classList.add('hidden');
+            samplesPage.classList.add('hidden');
             specimenTabs.style.display = 'none';
             loadReportLogs();
+        } else if (page === 'orders') {
+            taxonomyPage.classList.add('hidden');
+            reportingPage.classList.add('hidden');
+            reportLogPage.classList.add('hidden');
+            ordersPage.classList.remove('hidden');
+            samplesPage.classList.add('hidden');
+            specimenTabs.style.display = 'none';
+            // Load orders data - handled by registration.js
+            if (typeof loadOrdersData === 'function') {
+                loadOrdersData();
+            }
+        } else if (page === 'samples') {
+            taxonomyPage.classList.add('hidden');
+            reportingPage.classList.add('hidden');
+            reportLogPage.classList.add('hidden');
+            ordersPage.classList.add('hidden');
+            samplesPage.classList.remove('hidden');
+            specimenTabs.style.display = 'none';
+            // Load samples data - handled by registration.js
+            if (typeof loadSamplesData === 'function') {
+                loadSamplesData();
+            }
         }
     });
 });
@@ -1372,17 +1402,17 @@ function renderAnalysisResults() {
         return;
     }
 
-    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+    let html = '<table class="analysis-results-table">';
     html += `<thead>
-        <tr style="background: #f5f5f5;">
-            <th style="padding: 10px; text-align: left; width: 30px;"><input type="checkbox" id="select-all-checkbox"></th>
-            <th style="padding: 10px; text-align: left;">Station</th>
-            <th style="padding: 10px; text-align: left;">Type</th>
-            <th style="padding: 10px; text-align: left;">Client</th>
-            <th style="padding: 10px; text-align: left;">Biologist</th>
-            <th style="padding: 10px; text-align: left;">Date</th>
-            <th style="padding: 10px; text-align: left;">Taxa</th>
-            <th style="padding: 10px; text-align: left;">Actions</th>
+        <tr>
+            <th><input type="checkbox" id="select-all-checkbox"></th>
+            <th>Station</th>
+            <th>Type</th>
+            <th>Client</th>
+            <th>Biologist</th>
+            <th>Date</th>
+            <th>Taxa</th>
+            <th>Actions</th>
         </tr>
     </thead><tbody>`;
 
@@ -1393,16 +1423,16 @@ function renderAnalysisResults() {
 
         html += `
             <tr class="analysis-result-item" data-id="${result.id}">
-                <td style="padding: 10px;">
+                <td>
                     <input type="checkbox" class="result-select" data-id="${result.id}" ${selectedResults.has(result.id) ? 'checked' : ''}>
                 </td>
-                <td style="padding: 10px;">${result.stationId || 'N/A'}</td>
-                <td style="padding: 10px;"><span class="result-type ${typeClass}">${result.specimenType}</span></td>
-                <td style="padding: 10px;">${result.clientName || 'N/A'}</td>
-                <td style="padding: 10px;">${result.biologistId || 'N/A'}</td>
-                <td style="padding: 10px;">${analyzedDate}</td>
-                <td style="padding: 10px;">${taxaCount}</td>
-                <td style="padding: 10px;">
+                <td>${result.stationId || 'N/A'}</td>
+                <td><span class="result-type ${typeClass}">${result.specimenType}</span></td>
+                <td>${result.clientName || 'N/A'}</td>
+                <td>${result.biologistId || 'N/A'}</td>
+                <td>${analyzedDate}</td>
+                <td>${taxaCount}</td>
+                <td>
                     <button class="btn-secondary view-result-btn" data-id="${result.id}">View</button>
                     <button class="btn-danger delete-result-btn" data-id="${result.id}" style="padding: 4px 8px; font-size: 11px;">Delete</button>
                 </td>

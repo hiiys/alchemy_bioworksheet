@@ -6,6 +6,8 @@ import '../data/dao/count_dao.dart';
 import '../data/dao/project_dao.dart';
 import '../data/dao/rank_definition_dao.dart';
 import '../data/dao/order_dao.dart';
+import '../services/sample_sync_service.dart';
+import '../services/realtime_sync_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
@@ -16,6 +18,8 @@ class AppState with ChangeNotifier {
   final CountDao _countDao = CountDao();
   final ProjectDao _projectDao = ProjectDao();
   final OrderDao _orderDao = OrderDao();
+  final SampleSyncService _syncService = SampleSyncService();
+  final RealtimeSyncService _realtimeSyncService = RealtimeSyncService();
 
   // Current state
   Sample? _activeSample;
@@ -26,6 +30,11 @@ class AppState with ChangeNotifier {
   List<OrderInfo> _orders = [];
   ProjectInfo? _currentProject;
 
+  // Sync state
+  bool _isOnline = true;
+  bool _isSyncing = false;
+  String _syncStatus = 'Offline';
+
   // Getters
   Sample? get activeSample => _activeSample;
   List<Taxon> get taxa => _taxa;
@@ -34,6 +43,9 @@ class AppState with ChangeNotifier {
   List<Sample> get samples => _samples;
   List<OrderInfo> get orders => _orders;
   ProjectInfo? get currentProject => _currentProject;
+  bool get isOnline => _isOnline;
+  bool get isSyncing => _isSyncing;
+  String get syncStatus => _syncStatus;
 
   // Initialize app state
   Future<void> initialize() async {
@@ -48,7 +60,45 @@ class AppState with ChangeNotifier {
       await _loadCurrentCounts();
     }
 
+    // Initialize real-time sync service
+    await _initializeRealtimeSync();
+
     notifyListeners();
+  }
+
+  /// Initialize real-time synchronization
+  Future<void> _initializeRealtimeSync() async {
+    try {
+      // Set up callbacks for real-time updates
+      _realtimeSyncService.onSamplesUpdated = (samples) {
+        // Reload samples from local database when Firebase updates
+        _loadSamples();
+      };
+
+      _realtimeSyncService.onOrdersUpdated = (orders) {
+        // Reload orders from local database when Firebase updates
+        _loadOrders();
+      };
+
+      _realtimeSyncService.onConnectionChanged = (isOnline) {
+        _isOnline = isOnline;
+        notifyListeners();
+      };
+
+      _realtimeSyncService.onSyncStatusChanged = (status) {
+        _syncStatus = status;
+        _isSyncing = status == 'Syncing...';
+        notifyListeners();
+      };
+
+      // Start real-time sync (will also perform initial sync)
+      await _realtimeSyncService.initialize();
+
+      print('Real-time sync initialized successfully');
+    } catch (e) {
+      print('Error initializing real-time sync: $e');
+      // Don't throw - allow app to continue without sync
+    }
   }
 
   // Taxon management
@@ -103,13 +153,21 @@ class AppState with ChangeNotifier {
       combined.addAll(await _orderDao.getOrdersByType('Macrobenthos'));
       combined.addAll(await _orderDao.getOrdersByType('Zooplankton'));
       combined.addAll(await _orderDao.getOrdersByType('Phytoplankton'));
-      final byId = <int, OrderInfo>{};
+
+      // Deduplicate using a combination of firebaseId (if available) and local id
+      final seen = <String>{};
+      final deduped = <OrderInfo>[];
+
       for (final o in combined) {
-        final k = o.id ?? -1;
-        byId[k] = o; // last write wins, prevents duplicates
+        // Create unique key: prefer firebaseId, fallback to local id
+        final key = o.firebaseId ?? 'local_${o.id}';
+        if (!seen.contains(key)) {
+          seen.add(key);
+          deduped.add(o);
+        }
       }
-      _orders = byId.values.toList()
-        ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+
+      _orders = deduped..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
       notifyListeners();
     } catch (e) {
       print('Error loading orders: $e');
@@ -119,7 +177,48 @@ class AppState with ChangeNotifier {
   Future<void> saveOrder(OrderInfo order) async {
     final dao = _orderDao;
     if (order.id == null) {
-      await dao.insertOrder(order);
+      // Create new order with timestamps
+      final newOrder = OrderInfo(
+        clientName: order.clientName,
+        clientAddress: order.clientAddress,
+        specimenType: order.specimenType,
+        numberOfSamples: order.numberOfSamples,
+        numberOfReplicates: order.numberOfReplicates,
+        dateReceived: order.dateReceived,
+        dateAnalysis: order.dateAnalysis,
+        gearUsed: order.gearUsed,
+        areaOfGrab: order.areaOfGrab,
+        sieveSize: order.sieveSize,
+        netDiameter: order.netDiameter,
+        netMesh: order.netMesh,
+        towType: order.towType,
+        filteredVolume: order.filteredVolume,
+        methodAnalysis: order.methodAnalysis,
+        reportNo: order.reportNo,
+        referenceId: order.referenceId,
+        comments: order.comments,
+        sammNo: order.sammNo,
+        authorizedBy: order.authorizedBy,
+        institution: order.institution,
+        sampleDescription: order.sampleDescription,
+        towDistance: order.towDistance,
+        sampleVolume: order.sampleVolume,
+        srCellVolume: order.srCellVolume,
+        srCellsCounted: order.srCellsCounted,
+        createdAt: DateTime.now(),
+      );
+      final orderId = await dao.insertOrder(newOrder);
+
+      // Upload to Firebase
+      final savedOrder = await dao.getOrderById(orderId);
+      if (savedOrder != null) {
+        try {
+          await _syncService.uploadOrder(savedOrder);
+          print('Order uploaded to Firebase');
+        } catch (e) {
+          print('Error uploading order to Firebase: $e');
+        }
+      }
     } else {
       await dao.updateOrder(order);
     }
@@ -179,7 +278,50 @@ class AppState with ChangeNotifier {
     required OrderInfo order,
     required String markingBase,
   }) async {
-    final id = await _orderDao.insertOrder(order);
+    // Create order with timestamps
+    final newOrder = OrderInfo(
+      clientName: order.clientName,
+      clientAddress: order.clientAddress,
+      specimenType: order.specimenType,
+      numberOfSamples: order.numberOfSamples,
+      numberOfReplicates: order.numberOfReplicates,
+      dateReceived: order.dateReceived,
+      dateAnalysis: order.dateAnalysis,
+      gearUsed: order.gearUsed,
+      areaOfGrab: order.areaOfGrab,
+      sieveSize: order.sieveSize,
+      netDiameter: order.netDiameter,
+      netMesh: order.netMesh,
+      towType: order.towType,
+      filteredVolume: order.filteredVolume,
+      methodAnalysis: order.methodAnalysis,
+      reportNo: order.reportNo,
+      referenceId: order.referenceId,
+      comments: order.comments,
+      sammNo: order.sammNo,
+      authorizedBy: order.authorizedBy,
+      institution: order.institution,
+      sampleDescription: order.sampleDescription,
+      towDistance: order.towDistance,
+      sampleVolume: order.sampleVolume,
+      srCellVolume: order.srCellVolume,
+      srCellsCounted: order.srCellsCounted,
+      createdAt: DateTime.now(),
+    );
+
+    final id = await _orderDao.insertOrder(newOrder);
+
+    // Upload to Firebase
+    final savedOrder = await _orderDao.getOrderById(id);
+    if (savedOrder != null) {
+      try {
+        await _syncService.uploadOrder(savedOrder);
+        print('Order uploaded to Firebase');
+      } catch (e) {
+        print('Error uploading order to Firebase: $e');
+      }
+    }
+
     await _loadOrders();
     notifyListeners();
     return id;
@@ -250,14 +392,15 @@ class AppState with ChangeNotifier {
     required String specimenType,
     required String clientName,
     required String sampleMarking,
-    String? receiveId,
+    String? receiveId, // Ignored - Reference ID is auto-generated by Firebase
     DateTime? dateAnalysis,
   }) async {
+    // Create sample without Reference ID (will be auto-generated by Firebase)
     final sample = Sample(
       orderId: orderId,
       stationId: sampleMarking,
       sampleMarking: sampleMarking,
-      receiveId: receiveId,
+      receiveId: null, // Will be auto-generated by Firebase
       date: dateAnalysis ?? DateTime.now(),
       habitat: null,
       client: clientName,
@@ -265,8 +408,25 @@ class AppState with ChangeNotifier {
       remarks: null,
       completed: false,
       sampleType: specimenType,
+      createdAt: DateTime.now(),
     );
+
+    // Save locally first
     final id = await _sampleDao.insertSample(sample);
+
+    // Get the saved sample with local ID
+    final savedSample = await _sampleDao.getSampleById(id);
+    if (savedSample != null) {
+      // Upload to Firebase - this will auto-generate Reference ID and sync back
+      try {
+        await _syncService.uploadSample(savedSample);
+        print('Sample uploaded to Firebase with auto-generated Reference ID');
+      } catch (e) {
+        print('Error uploading sample to Firebase: $e');
+        // Continue even if Firebase upload fails - sample is saved locally
+      }
+    }
+
     await _loadSamples();
     notifyListeners();
     return id;
@@ -615,5 +775,75 @@ class AppState with ChangeNotifier {
     _activeSample = s;
     await _loadSamples();
     notifyListeners();
+  }
+
+  /// Sync samples from Firebase to local database
+  Future<int> syncSamplesFromFirebase({String? specimenType}) async {
+    try {
+      final count = await _syncService.syncSamplesToLocal(specimenType: specimenType);
+      await _loadSamples();
+      notifyListeners();
+      print('Synced $count samples from Firebase');
+      return count;
+    } catch (e) {
+      print('Error syncing samples from Firebase: $e');
+      return 0;
+    }
+  }
+
+  /// Sync orders from Firebase to local database
+  Future<int> syncOrdersFromFirebase({String? specimenType}) async {
+    try {
+      final count = await _syncService.syncOrdersToLocal(specimenType: specimenType);
+      await _loadOrders();
+      notifyListeners();
+      print('Synced $count orders from Firebase');
+      return count;
+    } catch (e) {
+      print('Error syncing orders from Firebase: $e');
+      return 0;
+    }
+  }
+
+  /// Sync both orders and samples from Firebase
+  Future<Map<String, int>> syncAllFromFirebase({String? specimenType}) async {
+    final orderCount = await syncOrdersFromFirebase(specimenType: specimenType);
+    final sampleCount = await syncSamplesFromFirebase(specimenType: specimenType);
+    return {
+      'orders': orderCount,
+      'samples': sampleCount,
+    };
+  }
+
+  /// Force a manual sync with Firebase (triggered by user action)
+  Future<void> forceSync({String? specimenType}) async {
+    try {
+      await _realtimeSyncService.forceSync(specimenType: specimenType);
+      await _loadSamples();
+      await _loadOrders();
+      notifyListeners();
+    } catch (e) {
+      print('Error during force sync: $e');
+      rethrow;
+    }
+  }
+
+  /// Change specimen type filter and restart sync
+  Future<void> changeSpecimenTypeFilter(String? specimenType) async {
+    try {
+      await _realtimeSyncService.changeSpecimenType(specimenType);
+      await _loadSamples();
+      await _loadOrders();
+      notifyListeners();
+    } catch (e) {
+      print('Error changing specimen type filter: $e');
+    }
+  }
+
+  /// Clean up resources when disposing AppState
+  @override
+  void dispose() {
+    _realtimeSyncService.dispose();
+    super.dispose();
   }
 }

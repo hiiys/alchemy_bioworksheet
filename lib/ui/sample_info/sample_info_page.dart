@@ -15,6 +15,7 @@ class SampleInfoPage extends StatefulWidget {
 
 class _SampleInfoPageState extends State<SampleInfoPage> {
   bool _editMode = false;
+  String selectedSpecimenType = 'All';
 
   @override
   void initState() {
@@ -31,60 +32,96 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context, listen: false);
+
     return AppScaffold(
       title: AppPageTitles.sampleInfo,
-      actions: const [],
+      actions: [
+        IconButton(
+          onPressed: () async {
+            // Show loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Syncing from Firebase...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+
+            // Sync from Firebase
+            final result = await appState.syncAllFromFirebase();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Synced ${result['orders']} orders and ${result['samples']} samples',
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
+          icon: const Icon(Icons.sync),
+          tooltip: 'Sync from Firebase',
+        ),
+      ],
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Consumer<AppState>(
           builder: (context, appState, _) {
-            final orders = appState.orders;
-            if (orders.isEmpty) {
+            final allOrders = appState.orders;
+            final orders = selectedSpecimenType == 'All'
+                ? allOrders
+                : allOrders.where((o) => o.specimenType == selectedSpecimenType).toList();
+
+            if (allOrders.isEmpty) {
               return const Center(child: Text('No registrations yet'));
             }
-            return ListView.separated(
-              itemCount: orders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) {
-                final o = orders[i];
+
+            return Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedSpecimenType,
+                  items: const [
+                    DropdownMenuItem<String>(
+                      value: 'All',
+                      child: Text('All Specimen Types'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'Macrobenthos',
+                      child: Text('Macrobenthos'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'Phytoplankton',
+                      child: Text('Phytoplankton'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'Zooplankton',
+                      child: Text('Zooplankton'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => selectedSpecimenType = v ?? 'All'),
+                  decoration: const InputDecoration(
+                    labelText: 'Filter by Specimen Type',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (orders.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text('No registrations for selected specimen type'),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: orders.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) {
+                        final o = orders[i];
                 return Card(
                   child: ListTile(
-                    leading: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      tooltip: 'Delete Registration',
-                      onPressed: () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Registration'),
-                            content: const Text(
-                              'Delete this registration and all its samples?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (ok == true) {
-                          await Provider.of<AppState>(
-                            context,
-                            listen: false,
-                          ).deleteOrder(o.id!);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Registration deleted'),
-                            ),
-                          );
-                        }
-                      },
-                    ),
                     title: Text(
                       '${o.clientName} (${o.numberOfSamples} samples)',
                     ),
@@ -95,7 +132,10 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                     },
                   ),
                 );
-              },
+                      },
+                    ),
+                  ),
+              ],
             );
           },
         ),
@@ -399,148 +439,125 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                           subtitle: Text(
                             'Reference ID: ${s.receiveId ?? ''} • Date Received: ${_formatDate(s.date)}${s.analyzedDate != null ? ' • Analyzed: ${_formatDate(s.analyzedDate!)}' : ''}',
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                tooltip: 'Edit Sample',
-                                onPressed: () async {
-                                  final recv = TextEditingController(
-                                    text: s.receiveId ?? '',
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: 'Edit Sample',
+                            onPressed: () async {
+                              final recv = TextEditingController(
+                                text: s.receiveId ?? '',
+                              );
+                              DateTime date = s.date;
+                              final formatter =
+                                  ReferenceId.formatterForType(
+                                    order.specimenType,
                                   );
-                                  DateTime date = s.date;
-                                  final formatter =
-                                      ReferenceId.formatterForType(
-                                        order.specimenType,
-                                      );
-                                  if ((recv.text).isEmpty)
-                                    recv.text = ReferenceId.prefixFor(
-                                      order.specimenType,
-                                    );
-                                  await showDialog(
-                                    context: context,
-                                    builder: (context) => StatefulBuilder(
-                                      builder: (context, setState2) => AlertDialog(
-                                        title: const Text('Edit Sample'),
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
+                              if ((recv.text).isEmpty)
+                                recv.text = ReferenceId.prefixFor(
+                                  order.specimenType,
+                                );
+                              await showDialog(
+                                context: context,
+                                builder: (context) => StatefulBuilder(
+                                  builder: (context, setState2) => AlertDialog(
+                                    title: const Text('Edit Sample'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TextField(
+                                          controller: recv,
+                                          inputFormatters: [formatter],
+                                          decoration: const InputDecoration(
+                                            labelText: 'Reference ID',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
                                           children: [
-                                            TextField(
-                                              controller: recv,
-                                              inputFormatters: [formatter],
-                                              decoration: const InputDecoration(
-                                                labelText: 'Reference ID',
-                                                border: OutlineInputBorder(),
+                                            Expanded(
+                                              child: InputDecorator(
+                                                decoration:
+                                                    const InputDecoration(
+                                                      labelText:
+                                                          'Date Received',
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ),
+                                                child: Text(
+                                                  _formatDate(date),
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: InputDecorator(
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          labelText:
-                                                              'Date Received',
-                                                          border:
-                                                              OutlineInputBorder(),
-                                                        ),
-                                                    child: Text(
-                                                      _formatDate(date),
-                                                    ),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.calendar_today,
-                                                  ),
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await showDatePicker(
-                                                          context: context,
-                                                          initialDate: date,
-                                                          firstDate: DateTime(
-                                                            2000,
-                                                          ),
-                                                          lastDate: DateTime(
-                                                            2100,
-                                                          ),
-                                                        );
-                                                    if (picked != null)
-                                                      setState2(
-                                                        () => date = picked,
-                                                      );
-                                                  },
-                                                ),
-                                              ],
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.calendar_today,
+                                              ),
+                                              onPressed: () async {
+                                                final picked =
+                                                    await showDatePicker(
+                                                      context: context,
+                                                      initialDate: date,
+                                                      firstDate: DateTime(
+                                                        2000,
+                                                      ),
+                                                      lastDate: DateTime(
+                                                        2100,
+                                                      ),
+                                                    );
+                                                if (picked != null)
+                                                  setState2(
+                                                    () => date = picked,
+                                                  );
+                                              },
                                             ),
                                           ],
                                         ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () async {
-                                              final updated = Sample(
-                                                id: s.id,
-                                                orderId: s.orderId,
-                                                stationId: s.stationId,
-                                                date: date,
-                                                lat: s.lat,
-                                                lon: s.lon,
-                                                habitat: s.habitat,
-                                                client: s.client,
-                                                biologistId: s.biologistId,
-                                                remarks: s.remarks,
-                                                completed: s.completed,
-                                                sampleType: s.sampleType,
-                                                sampleMarking: s.sampleMarking,
-                                                receiveId:
-                                                    recv.text.trim().isEmpty
-                                                    ? null
-                                                    : recv.text.trim(),
-                                              );
-                                              await Provider.of<AppState>(
-                                                context,
-                                                listen: false,
-                                              ).updateSample(updated);
-                                              samples = await appState
-                                                  .getSamplesByOrder(order.id!);
-                                              // ignore: use_build_context_synchronously
-                                              Navigator.pop(context);
-                                              setState(() {});
-                                            },
-                                            child: const Text('Save'),
-                                          ),
-                                        ],
-                                      ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.redAccent,
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () async {
+                                          final updated = Sample(
+                                            id: s.id,
+                                            orderId: s.orderId,
+                                            stationId: s.stationId,
+                                            date: date,
+                                            lat: s.lat,
+                                            lon: s.lon,
+                                            habitat: s.habitat,
+                                            client: s.client,
+                                            biologistId: s.biologistId,
+                                            remarks: s.remarks,
+                                            completed: s.completed,
+                                            sampleType: s.sampleType,
+                                            sampleMarking: s.sampleMarking,
+                                            receiveId:
+                                                recv.text.trim().isEmpty
+                                                ? null
+                                                : recv.text.trim(),
+                                          );
+                                          await Provider.of<AppState>(
+                                            context,
+                                            listen: false,
+                                          ).updateSample(updated);
+                                          samples = await appState
+                                              .getSamplesByOrder(order.id!);
+                                          // ignore: use_build_context_synchronously
+                                          Navigator.pop(context);
+                                          setState(() {});
+                                        },
+                                        child: const Text('Save'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                onPressed: () async {
-                                  if (s.id != null) {
-                                    await Provider.of<AppState>(
-                                      context,
-                                      listen: false,
-                                    ).deleteSample(s.id!);
-                                    samples = await appState.getSamplesByOrder(
-                                      order.id!,
-                                    );
-                                    setState(() {});
-                                  }
-                                },
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         );
                       },
