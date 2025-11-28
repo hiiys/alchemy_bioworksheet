@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_state.dart';
 import '../../core/routing.dart';
@@ -332,22 +331,6 @@ class _SampleListPageState extends State<SampleListPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const SizedBox(width: 8),
-                if ((sample.receiveId ?? '').isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Reference ID: ${sample.receiveId}',
-                      style: theme.textTheme.labelSmall,
-                    ),
-                  ),
                 if ((sample.biologistId ?? '').isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -444,12 +427,7 @@ class _SampleListPageState extends State<SampleListPage> {
   }
 
   void _editSample(BuildContext context, Sample s, AppState appState) async {
-    final prefix = s.sampleType == 'Macrobenthos'
-        ? 'BM'
-        : (s.sampleType == 'Phytoplankton' ? 'BP' : 'BZ');
-    final recv = TextEditingController(text: s.receiveId ?? '');
     DateTime date = s.date;
-    if ((recv.text).isEmpty) recv.text = prefix;
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -458,18 +436,6 @@ class _SampleListPageState extends State<SampleListPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: recv,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^[A-Z0-9]+$')),
-                  _PrefixDigitsFormatter(prefix: prefix, maxDigits: 5),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Reference ID',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -518,7 +484,7 @@ class _SampleListPageState extends State<SampleListPage> {
                   completed: s.completed,
                   sampleType: s.sampleType,
                   sampleMarking: s.sampleMarking,
-                  receiveId: recv.text.trim().isEmpty ? null : recv.text.trim(),
+                  receiveId: s.receiveId,
                 );
                 await appState.updateSample(updated);
                 // ignore: use_build_context_synchronously
@@ -626,30 +592,5 @@ class _SampleListPageState extends State<SampleListPage> {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-}
-
-class _PrefixDigitsFormatter extends TextInputFormatter {
-  final String prefix;
-  final int maxDigits;
-  _PrefixDigitsFormatter({required this.prefix, this.maxDigits = 5});
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var text = newValue.text;
-    if (!text.startsWith(prefix)) {
-      text =
-          prefix + text.replaceFirst(RegExp('^${RegExp.escape(prefix)}'), '');
-    }
-    final after = text.substring(prefix.length);
-    final digitsOnly = after.replaceAll(RegExp(r'[^0-9]'), '');
-    final limited = digitsOnly.length > maxDigits
-        ? digitsOnly.substring(0, maxDigits)
-        : digitsOnly;
-    final result = prefix + limited;
-    final sel = TextSelection.collapsed(offset: result.length);
-    return TextEditingValue(text: result, selection: sel);
   }
 }

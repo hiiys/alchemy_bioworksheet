@@ -744,18 +744,21 @@ function parseHierarchicalCsv(lines, headers) {
     // Map to track unique taxa by name+rank combination
     const taxaMap = new Map();
 
-    // Generate unique IDs based on specimen type to avoid conflicts
+    // Auto-generated IDs for parent taxa (based on specimen type to avoid conflicts)
     // Macrobenthos: 1-999999, Zooplankton: 1000000-1999999, Phytoplankton: 2000000-2999999
-    let nextId;
+    let nextAutoId;
     if (currentSpecimenType === 'Macrobenthos') {
-        nextId = 1;
+        nextAutoId = 1;
     } else if (currentSpecimenType === 'Zooplankton') {
-        nextId = 1000000;
+        nextAutoId = 1000000;
     } else if (currentSpecimenType === 'Phytoplankton') {
-        nextId = 2000000;
+        nextAutoId = 2000000;
     } else {
-        nextId = 3000000; // Default for other types
+        nextAutoId = 3000000; // Default for other types
     }
+
+    // Check if Taxa_ID column exists
+    const hasTaxaId = headers.includes('taxa_id');
 
     // Define rank hierarchy
     const rankHierarchy = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
@@ -772,8 +775,29 @@ function parseHierarchicalCsv(lines, headers) {
             row[header] = values[index].trim();
         });
 
+        // Get Taxa_ID from CSV if available
+        const csvTaxaId = hasTaxaId && row.taxa_id ? parseInt(row.taxa_id) : null;
+
+        // Validate Taxa_ID
+        if (hasTaxaId && (!csvTaxaId || isNaN(csvTaxaId))) {
+            errors.push(`Row ${i + 1}: Invalid or missing Taxa_ID`);
+            continue;
+        }
+
         // Build hierarchical structure
         let parentId = null;
+        let lastRank = null;
+        let lastTaxonName = null;
+
+        // Find the deepest (most specific) rank in this row
+        for (let j = rankHierarchy.length - 1; j >= 0; j--) {
+            const rankLower = rankHierarchy[j].toLowerCase();
+            if (row[rankLower] && row[rankLower] !== '') {
+                lastRank = rankHierarchy[j];
+                lastTaxonName = row[rankLower];
+                break;
+            }
+        }
 
         for (const rank of rankHierarchy) {
             const rankLower = rank.toLowerCase();
@@ -784,8 +808,12 @@ function parseHierarchicalCsv(lines, headers) {
             const key = `${taxonName}|${rank}`;
 
             if (!taxaMap.has(key)) {
+                // Use CSV Taxa_ID for the leaf taxon, auto-generate for parent taxa
+                const isLeafTaxon = (rank === lastRank && taxonName === lastTaxonName);
+                const taxonId = isLeafTaxon && csvTaxaId ? csvTaxaId : nextAutoId++;
+
                 const taxon = {
-                    id: nextId++,
+                    id: taxonId,
                     parentId: parentId,
                     name: taxonName,
                     rank: rank,
@@ -1738,8 +1766,29 @@ async function viewAnalysisResult(id) {
 
     if (result.counts) {
         for (const count of result.counts) {
-            const density = count.density ? count.density.toFixed(2) : 'N/A';
-            detailsHtml += `<tr><td style="padding: 5px;">${count.taxonName}</td><td style="text-align: right; padding: 5px;">${count.count}</td><td style="text-align: right; padding: 5px;">${density}</td></tr>`;
+            let density = count.density;
+
+            // Recalculate density if missing but we have required parameters
+            if (!density && count.count) {
+                const countValue = parseInt(count.count) || 0;
+                if (result.specimenType === 'Macrobenthos') {
+                    // Density = Count / Area of grab (ind/m²)
+                    const areaOfGrab = result.areaOfGrab || 0.3; // Default 0.3 m²
+                    if (areaOfGrab > 0) {
+                        density = countValue / areaOfGrab;
+                    }
+                } else {
+                    // Plankton: Density = Count × Dilution Factor / Filtered Volume (units/L)
+                    const filteredVolume = result.filteredVolume || 1; // Default 1 L
+                    const dilutionFactor = result.dilutionFactor || 1;
+                    if (filteredVolume > 0) {
+                        density = (countValue * dilutionFactor) / filteredVolume;
+                    }
+                }
+            }
+
+            const densityStr = density ? density.toFixed(2) : 'N/A';
+            detailsHtml += `<tr><td style="padding: 5px;">${count.taxonName}</td><td style="text-align: right; padding: 5px;">${count.count}</td><td style="text-align: right; padding: 5px;">${densityStr}</td></tr>`;
         }
     }
 
@@ -2215,7 +2264,7 @@ function buildTaxonomyTree(results) {
                 // If this is the final level (the taxon that was counted)
                 if (level === hierarchy.length - 1) {
                     currentLevel[taxonName].densities[resultIndex] = count.density;
-                    currentLevel[taxonName].counts[resultIndex] = count.count;
+                    currentLevel[taxonName].counts[resultIndex] = parseInt(count.count) || 0;
                 }
 
                 currentLevel = currentLevel[taxonName].children;
@@ -2283,42 +2332,90 @@ function renderTaxonomyTree(tree, results, level = 0, rows = []) {
 function calculateTaxaCounts(results) {
     return results.map(result => {
         if (!result.counts || result.counts.length === 0) return 0;
-        // Count unique taxa (taxa with non-zero counts)
-        return result.counts.filter(c => c.count > 0).length;
+        // Count unique taxa (taxa with non-zero counts), ensuring counts are numbers
+        return result.counts.filter(c => (parseInt(c.count) || 0) > 0).length;
     });
 }
 
-// Helper: Calculate overall density per sample
+// Helper: Calculate overall density per sample (sum of all count/m² in the sample)
 function calculateOverallDensities(results) {
     return results.map(result => {
         if (!result.counts || result.counts.length === 0) return 0;
-        // Sum all densities
-        const totalDensity = result.counts.reduce((sum, c) => sum + (c.density || 0), 0);
+
+        // Sum all densities (count/m² for each taxa)
+        const totalDensity = result.counts.reduce((sum, c) => {
+            // Recalculate density if missing
+            let density = c.density;
+            if (!density && c.count) {
+                const countValue = parseInt(c.count) || 0;
+                if (result.specimenType === 'Macrobenthos') {
+                    const areaOfGrab = result.areaOfGrab || 0.3;
+                    if (areaOfGrab > 0) {
+                        density = countValue / areaOfGrab;
+                    }
+                } else {
+                    const filteredVolume = result.filteredVolume || 1;
+                    const dilutionFactor = result.dilutionFactor || 1;
+                    if (filteredVolume > 0) {
+                        density = (countValue * dilutionFactor) / filteredVolume;
+                    }
+                }
+            }
+            return sum + (density || 0);
+        }, 0);
+
         return totalDensity;
     });
 }
 
 // Helper: Calculate Shannon Diversity Index (H') for each sample
+// Formula: (N*ln(N) - Σ(ni*ln(ni))) / N
+// Where N = Overall Density, ni = density of each taxon
 function calculateShannonIndices(results) {
     return results.map(result => {
         if (!result.counts || result.counts.length === 0) return 0;
 
-        // Get counts for taxa with non-zero counts
-        const counts = result.counts.filter(c => c.count > 0).map(c => c.count);
-        if (counts.length === 0) return 0;
-
-        // Calculate total individuals
-        const totalIndividuals = counts.reduce((sum, count) => sum + count, 0);
-        if (totalIndividuals === 0) return 0;
-
-        // Calculate Shannon Index: H' = -Σ(pi × ln(pi))
-        let shannonIndex = 0;
-        counts.forEach(count => {
-            const proportion = count / totalIndividuals;
-            if (proportion > 0) {
-                shannonIndex -= proportion * Math.log(proportion);
+        // Get densities for taxa with non-zero density
+        const densities = [];
+        result.counts.forEach(c => {
+            // Recalculate density if missing
+            let density = c.density;
+            if (!density && c.count) {
+                const countValue = parseInt(c.count) || 0;
+                if (result.specimenType === 'Macrobenthos') {
+                    const areaOfGrab = result.areaOfGrab || 0.3;
+                    if (areaOfGrab > 0) {
+                        density = countValue / areaOfGrab;
+                    }
+                } else {
+                    const filteredVolume = result.filteredVolume || 1;
+                    const dilutionFactor = result.dilutionFactor || 1;
+                    if (filteredVolume > 0) {
+                        density = (countValue * dilutionFactor) / filteredVolume;
+                    }
+                }
+            }
+            if (density && density > 0) {
+                densities.push(density);
             }
         });
+
+        if (densities.length === 0) return 0;
+
+        // Calculate Overall Density (N)
+        const overallDensity = densities.reduce((sum, d) => sum + d, 0);
+        if (overallDensity === 0) return 0;
+
+        // Calculate sum of (ni * ln(ni)) for each taxon
+        let sumNiLnNi = 0;
+        densities.forEach(density => {
+            if (density > 0) {
+                sumNiLnNi += density * Math.log(density);
+            }
+        });
+
+        // Shannon Index: (N*ln(N) - Σ(ni*ln(ni))) / N
+        const shannonIndex = (overallDensity * Math.log(overallDensity) - sumNiLnNi) / overallDensity;
 
         return shannonIndex;
     });
@@ -2329,9 +2426,31 @@ function calculateEvennessIndices(results) {
     return results.map((result, index) => {
         if (!result.counts || result.counts.length === 0) return 0;
 
-        // Get counts for taxa with non-zero counts
-        const counts = result.counts.filter(c => c.count > 0).map(c => c.count);
-        const numSpecies = counts.length;
+        // Count taxa with non-zero density
+        let numSpecies = 0;
+        result.counts.forEach(c => {
+            // Recalculate density if missing
+            let density = c.density;
+            if (!density && c.count) {
+                const countValue = parseInt(c.count) || 0;
+                if (result.specimenType === 'Macrobenthos') {
+                    const areaOfGrab = result.areaOfGrab || 0.3;
+                    if (areaOfGrab > 0) {
+                        density = countValue / areaOfGrab;
+                    }
+                } else {
+                    const filteredVolume = result.filteredVolume || 1;
+                    const dilutionFactor = result.dilutionFactor || 1;
+                    if (filteredVolume > 0) {
+                        density = (countValue * dilutionFactor) / filteredVolume;
+                    }
+                }
+            }
+            if (density && density > 0) {
+                numSpecies++;
+            }
+        });
+
         if (numSpecies === 0 || numSpecies === 1) return 0;
 
         // Calculate Shannon Index (H')

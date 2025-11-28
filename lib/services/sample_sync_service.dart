@@ -487,38 +487,39 @@ class SampleSyncService {
           }
 
           if (shouldUpdate) {
+            // Merge strategy: Preserve local values if Firebase values are null/empty
             final updatedOrder = OrderInfo(
               id: existing.id, // Keep local ID
               firebaseId: order.firebaseId,
               clientName: order.clientName,
-              clientAddress: order.clientAddress,
+              clientAddress: order.clientAddress ?? existing.clientAddress,
               specimenType: order.specimenType,
-              numberOfSamples: order.numberOfSamples,
-              numberOfReplicates: order.numberOfReplicates,
-              dateReceived: order.dateReceived,
-              dateAnalysis: order.dateAnalysis,
-              gearUsed: order.gearUsed,
-              areaOfGrab: order.areaOfGrab,
-              sieveSize: order.sieveSize,
-              netDiameter: order.netDiameter,
-              netMesh: order.netMesh,
-              towType: order.towType,
-              filteredVolume: order.filteredVolume,
-              methodAnalysis: order.methodAnalysis,
-              reportNo: order.reportNo,
-              referenceId: order.referenceId,
-              comments: order.comments,
-              sammNo: order.sammNo,
-              authorizedBy: order.authorizedBy,
-              institution: order.institution,
-              sampleDescription: order.sampleDescription,
-              towDistance: order.towDistance,
-              sampleVolume: order.sampleVolume,
-              srCellVolume: order.srCellVolume,
-              srCellsCounted: order.srCellsCounted,
-              deviceId: order.deviceId,
-              createdAt: order.createdAt,
-              updatedAt: order.updatedAt,
+              numberOfSamples: order.numberOfSamples ?? existing.numberOfSamples,
+              numberOfReplicates: order.numberOfReplicates ?? existing.numberOfReplicates,
+              dateReceived: order.dateReceived ?? existing.dateReceived,
+              dateAnalysis: order.dateAnalysis ?? existing.dateAnalysis,
+              gearUsed: order.gearUsed ?? existing.gearUsed,
+              areaOfGrab: order.areaOfGrab ?? existing.areaOfGrab, // Preserve local value
+              sieveSize: order.sieveSize ?? existing.sieveSize,
+              netDiameter: order.netDiameter ?? existing.netDiameter,
+              netMesh: order.netMesh ?? existing.netMesh,
+              towType: order.towType ?? existing.towType,
+              filteredVolume: order.filteredVolume ?? existing.filteredVolume, // Preserve local value
+              methodAnalysis: order.methodAnalysis ?? existing.methodAnalysis,
+              reportNo: order.reportNo ?? existing.reportNo,
+              referenceId: order.referenceId ?? existing.referenceId,
+              comments: order.comments ?? existing.comments,
+              sammNo: order.sammNo ?? existing.sammNo,
+              authorizedBy: order.authorizedBy ?? existing.authorizedBy,
+              institution: order.institution ?? existing.institution,
+              sampleDescription: order.sampleDescription ?? existing.sampleDescription,
+              towDistance: order.towDistance ?? existing.towDistance,
+              sampleVolume: order.sampleVolume ?? existing.sampleVolume,
+              srCellVolume: order.srCellVolume ?? existing.srCellVolume,
+              srCellsCounted: order.srCellsCounted ?? existing.srCellsCounted,
+              deviceId: order.deviceId ?? existing.deviceId,
+              createdAt: order.createdAt ?? existing.createdAt,
+              updatedAt: order.updatedAt ?? existing.updatedAt,
               synced: true,
             );
             await _orderDao.updateOrder(updatedOrder);
@@ -712,38 +713,39 @@ class SampleSyncService {
 
         if (recentLocal != null) {
           // This is likely the same order just uploaded - update it instead of inserting
+          // Merge strategy: Preserve local values if Firebase values are null/empty
           final updatedOrder = OrderInfo(
             id: recentLocal.id, // Keep local ID
             firebaseId: order.firebaseId, // Set Firebase ID
             clientName: order.clientName,
-            clientAddress: order.clientAddress,
+            clientAddress: order.clientAddress ?? recentLocal.clientAddress,
             specimenType: order.specimenType,
-            numberOfSamples: order.numberOfSamples,
-            numberOfReplicates: order.numberOfReplicates,
-            dateReceived: order.dateReceived,
-            dateAnalysis: order.dateAnalysis,
-            gearUsed: order.gearUsed,
-            areaOfGrab: order.areaOfGrab,
-            sieveSize: order.sieveSize,
-            netDiameter: order.netDiameter,
-            netMesh: order.netMesh,
-            towType: order.towType,
-            filteredVolume: order.filteredVolume,
-            methodAnalysis: order.methodAnalysis,
-            reportNo: order.reportNo,
-            referenceId: order.referenceId,
-            comments: order.comments,
-            sammNo: order.sammNo,
-            authorizedBy: order.authorizedBy,
-            institution: order.institution,
-            sampleDescription: order.sampleDescription,
-            towDistance: order.towDistance,
-            sampleVolume: order.sampleVolume,
-            srCellVolume: order.srCellVolume,
-            srCellsCounted: order.srCellsCounted,
-            deviceId: order.deviceId,
-            createdAt: order.createdAt,
-            updatedAt: order.updatedAt,
+            numberOfSamples: order.numberOfSamples ?? recentLocal.numberOfSamples,
+            numberOfReplicates: order.numberOfReplicates ?? recentLocal.numberOfReplicates,
+            dateReceived: order.dateReceived ?? recentLocal.dateReceived,
+            dateAnalysis: order.dateAnalysis ?? recentLocal.dateAnalysis,
+            gearUsed: order.gearUsed ?? recentLocal.gearUsed,
+            areaOfGrab: order.areaOfGrab ?? recentLocal.areaOfGrab, // Preserve local value
+            sieveSize: order.sieveSize ?? recentLocal.sieveSize,
+            netDiameter: order.netDiameter ?? recentLocal.netDiameter,
+            netMesh: order.netMesh ?? recentLocal.netMesh,
+            towType: order.towType ?? recentLocal.towType,
+            filteredVolume: order.filteredVolume ?? recentLocal.filteredVolume, // Preserve local value
+            methodAnalysis: order.methodAnalysis ?? recentLocal.methodAnalysis,
+            reportNo: order.reportNo ?? recentLocal.reportNo,
+            referenceId: order.referenceId ?? recentLocal.referenceId,
+            comments: order.comments ?? recentLocal.comments,
+            sammNo: order.sammNo ?? recentLocal.sammNo,
+            authorizedBy: order.authorizedBy ?? recentLocal.authorizedBy,
+            institution: order.institution ?? recentLocal.institution,
+            sampleDescription: order.sampleDescription ?? recentLocal.sampleDescription,
+            towDistance: order.towDistance ?? recentLocal.towDistance,
+            sampleVolume: order.sampleVolume ?? recentLocal.sampleVolume,
+            srCellVolume: order.srCellVolume ?? recentLocal.srCellVolume,
+            srCellsCounted: order.srCellsCounted ?? recentLocal.srCellsCounted,
+            deviceId: order.deviceId ?? recentLocal.deviceId,
+            createdAt: order.createdAt ?? recentLocal.createdAt,
+            updatedAt: order.updatedAt ?? recentLocal.updatedAt,
             synced: true,
           );
           await _orderDao.updateOrder(updatedOrder);
@@ -759,36 +761,37 @@ class SampleSyncService {
         // Update if Firebase version is newer
         if (order.updatedAt != null && existing.updatedAt != null) {
           if (order.updatedAt!.isAfter(existing.updatedAt!)) {
+            // Merge strategy: Preserve local values if Firebase values are null/empty
             final updatedOrder = OrderInfo(
               id: existing.id, // Keep local ID
               firebaseId: order.firebaseId,
               clientName: order.clientName,
-              clientAddress: order.clientAddress,
+              clientAddress: order.clientAddress ?? existing.clientAddress,
               specimenType: order.specimenType,
-              numberOfSamples: order.numberOfSamples,
-              numberOfReplicates: order.numberOfReplicates,
-              dateReceived: order.dateReceived,
-              dateAnalysis: order.dateAnalysis,
-              gearUsed: order.gearUsed,
-              areaOfGrab: order.areaOfGrab,
-              sieveSize: order.sieveSize,
-              netDiameter: order.netDiameter,
-              netMesh: order.netMesh,
-              towType: order.towType,
-              filteredVolume: order.filteredVolume,
-              methodAnalysis: order.methodAnalysis,
-              reportNo: order.reportNo,
-              referenceId: order.referenceId,
-              comments: order.comments,
-              sammNo: order.sammNo,
-              authorizedBy: order.authorizedBy,
-              institution: order.institution,
-              sampleDescription: order.sampleDescription,
-              towDistance: order.towDistance,
-              sampleVolume: order.sampleVolume,
-              srCellVolume: order.srCellVolume,
-              srCellsCounted: order.srCellsCounted,
-              deviceId: order.deviceId,
+              numberOfSamples: order.numberOfSamples ?? existing.numberOfSamples,
+              numberOfReplicates: order.numberOfReplicates ?? existing.numberOfReplicates,
+              dateReceived: order.dateReceived ?? existing.dateReceived,
+              dateAnalysis: order.dateAnalysis ?? existing.dateAnalysis,
+              gearUsed: order.gearUsed ?? existing.gearUsed,
+              areaOfGrab: order.areaOfGrab ?? existing.areaOfGrab, // Preserve local value
+              sieveSize: order.sieveSize ?? existing.sieveSize,
+              netDiameter: order.netDiameter ?? existing.netDiameter,
+              netMesh: order.netMesh ?? existing.netMesh,
+              towType: order.towType ?? existing.towType,
+              filteredVolume: order.filteredVolume ?? existing.filteredVolume, // Preserve local value
+              methodAnalysis: order.methodAnalysis ?? existing.methodAnalysis,
+              reportNo: order.reportNo ?? existing.reportNo,
+              referenceId: order.referenceId ?? existing.referenceId,
+              comments: order.comments ?? existing.comments,
+              sammNo: order.sammNo ?? existing.sammNo,
+              authorizedBy: order.authorizedBy ?? existing.authorizedBy,
+              institution: order.institution ?? existing.institution,
+              sampleDescription: order.sampleDescription ?? existing.sampleDescription,
+              towDistance: order.towDistance ?? existing.towDistance,
+              sampleVolume: order.sampleVolume ?? existing.sampleVolume,
+              srCellVolume: order.srCellVolume ?? existing.srCellVolume,
+              srCellsCounted: order.srCellsCounted ?? existing.srCellsCounted,
+              deviceId: order.deviceId ?? existing.deviceId,
               createdAt: order.createdAt,
               updatedAt: order.updatedAt,
               synced: true,
@@ -1002,5 +1005,22 @@ class SampleSyncService {
     } catch (e) {
       print('Error handling taxonomy update: $e');
     }
+  }
+
+  /// Sync all taxonomies for all specimen types
+  Future<int> syncAllTaxonomies() async {
+    int totalCount = 0;
+    final specimenTypes = ['Macrobenthos', 'Zooplankton', 'Phytoplankton'];
+
+    for (final specimenType in specimenTypes) {
+      try {
+        final count = await syncTaxonomiesToLocal(specimenType: specimenType);
+        totalCount += count;
+      } catch (e) {
+        print('Error syncing $specimenType taxonomy: $e');
+      }
+    }
+
+    return totalCount;
   }
 }
