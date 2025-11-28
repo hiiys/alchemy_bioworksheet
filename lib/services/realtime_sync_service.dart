@@ -13,11 +13,13 @@ class RealtimeSyncService {
   // Stream subscriptions
   StreamSubscription<List<Sample>>? _samplesSubscription;
   StreamSubscription<List<OrderInfo>>? _ordersSubscription;
+  StreamSubscription<List<Taxon>>? _taxonomiesSubscription;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // Callbacks for notifying about data changes
   Function(List<Sample>)? onSamplesUpdated;
   Function(List<OrderInfo>)? onOrdersUpdated;
+  Function(List<Taxon>)? onTaxonomiesUpdated;
   Function(bool)? onConnectionChanged;
   Function(String)? onSyncStatusChanged;
 
@@ -98,6 +100,7 @@ class RealtimeSyncService {
       // Step 2: Subscribe to real-time streams for ongoing updates
       _subscribeToSamplesStream(specimenType: specimenType);
       _subscribeToOrdersStream(specimenType: specimenType);
+      _subscribeToTaxonomiesStream(specimenType: specimenType);
 
       onSyncStatusChanged?.call('Synced');
       print('Real-time sync started successfully');
@@ -114,7 +117,13 @@ class RealtimeSyncService {
     try {
       print('Performing initial sync...');
 
-      // Sync orders first
+      // Sync taxonomies first
+      final taxaCount = await _sampleSyncService.syncTaxonomiesToLocal(
+        specimenType: specimenType,
+      );
+      print('Initial sync: $taxaCount taxa synced');
+
+      // Sync orders
       final orderCount = await _sampleSyncService.syncOrdersToLocal(
         specimenType: specimenType,
       );
@@ -197,6 +206,37 @@ class RealtimeSyncService {
     );
   }
 
+  /// Subscribe to real-time Taxonomies stream
+  void _subscribeToTaxonomiesStream({String? specimenType}) {
+    // Cancel existing subscription if any
+    _taxonomiesSubscription?.cancel();
+
+    if (specimenType == null) {
+      print('No specimen type specified for taxonomy sync');
+      return;
+    }
+
+    print('Subscribing to taxonomies stream for $specimenType...');
+
+    _taxonomiesSubscription = _sampleSyncService
+        .getTaxonomiesStream(specimenType: specimenType)
+        .listen(
+      (taxonomies) async {
+        print('Received ${taxonomies.length} taxonomies from Firebase stream for $specimenType');
+
+        // Sync all taxonomies to local database
+        await _sampleSyncService.syncTaxonomiesToLocal(specimenType: specimenType);
+
+        // Notify listeners
+        onTaxonomiesUpdated?.call(taxonomies);
+      },
+      onError: (error) {
+        print('Error in taxonomies stream: $error');
+        onSyncStatusChanged?.call('Sync error');
+      },
+    );
+  }
+
   /// Stop real-time synchronization
   void stopRealtimeSync() {
     print('Stopping real-time sync...');
@@ -206,6 +246,9 @@ class RealtimeSyncService {
 
     _ordersSubscription?.cancel();
     _ordersSubscription = null;
+
+    _taxonomiesSubscription?.cancel();
+    _taxonomiesSubscription = null;
 
     _isSyncing = false;
     onSyncStatusChanged?.call('Offline');

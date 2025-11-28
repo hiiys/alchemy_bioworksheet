@@ -80,6 +80,11 @@ class AppState with ChangeNotifier {
         _loadOrders();
       };
 
+      _realtimeSyncService.onTaxonomiesUpdated = (taxonomies) {
+        // Reload taxonomies from local database when Firebase updates
+        _loadTaxa();
+      };
+
       _realtimeSyncService.onConnectionChanged = (isOnline) {
         _isOnline = isOnline;
         notifyListeners();

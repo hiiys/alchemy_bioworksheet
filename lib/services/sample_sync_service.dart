@@ -4,12 +4,14 @@ import 'dart:io';
 import '../data/models.dart';
 import '../data/dao/sample_dao.dart';
 import '../data/dao/order_dao.dart';
+import '../data/dao/taxon_dao.dart';
 
-/// Service to sync samples and orders with Firebase and auto-generate Reference IDs
+/// Service to sync samples, orders, and taxonomies with Firebase
 class SampleSyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final SampleDao _sampleDao = SampleDao();
   final OrderDao _orderDao = OrderDao();
+  final TaxonDao _taxonDao = TaxonDao();
 
   /// Get reference to samples collection
   CollectionReference get _samplesRef {
@@ -886,6 +888,119 @@ class SampleSyncService {
       }
     } catch (e) {
       print('Error detecting and deleting removed orders: $e');
+    }
+  }
+
+  // ========== TAXONOMY SYNC METHODS ==========
+
+  /// Get real-time stream of taxonomies from Firebase for a specimen type
+  Stream<List<Taxon>> getTaxonomiesStream({String? specimenType}) {
+    if (specimenType == null) {
+      // Return empty stream if no specimen type specified
+      return Stream.value([]);
+    }
+
+    return _firestore
+        .collection('taxonomies')
+        .doc(specimenType)
+        .collection('taxa')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Taxon(
+          id: int.tryParse(doc.id),
+          parentId: data['parentId'] as int?,
+          name: data['name'] as String,
+          rank: data['rank'] as String?,
+          notes: data['notes'] as String?,
+          specimenType: data['specimenType'] as String?,
+        );
+      }).toList();
+    });
+  }
+
+  /// Get all taxonomies from Firebase for a specimen type
+  Future<List<Taxon>> getTaxonomiesFromFirebase({String? specimenType}) async {
+    try {
+      if (specimenType == null) {
+        print('No specimen type specified for taxonomy sync');
+        return [];
+      }
+
+      final snapshot = await _firestore
+          .collection('taxonomies')
+          .doc(specimenType)
+          .collection('taxa')
+          .get();
+
+      final taxa = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Taxon(
+          id: int.tryParse(doc.id),
+          parentId: data['parentId'] as int?,
+          name: data['name'] as String,
+          rank: data['rank'] as String?,
+          notes: data['notes'] as String?,
+          specimenType: data['specimenType'] as String?,
+        );
+      }).toList();
+
+      print('Fetched ${taxa.length} taxa from Firebase for $specimenType');
+      return taxa;
+    } catch (e) {
+      print('Error getting taxonomies from Firebase: $e');
+      return [];
+    }
+  }
+
+  /// Sync taxonomies from Firebase to local database
+  Future<int> syncTaxonomiesToLocal({String? specimenType}) async {
+    try {
+      if (specimenType == null) {
+        print('No specimen type specified for taxonomy sync');
+        return 0;
+      }
+
+      print('Syncing taxonomies for $specimenType from Firebase to local...');
+
+      // Get all taxonomies from Firebase
+      final firebaseTaxa = await getTaxonomiesFromFirebase(specimenType: specimenType);
+
+      // Clear existing local taxa for this specimen type
+      await _taxonDao.deleteAllTaxaByType(specimenType);
+      print('Cleared local taxa for $specimenType');
+
+      // Insert all taxa from Firebase
+      for (final taxon in firebaseTaxa) {
+        await _taxonDao.insertTaxon(taxon);
+      }
+
+      print('Synced ${firebaseTaxa.length} taxa for $specimenType to local database');
+      return firebaseTaxa.length;
+    } catch (e) {
+      print('Error syncing taxonomies to local: $e');
+      return 0;
+    }
+  }
+
+  /// Handle taxonomy update from real-time stream
+  Future<void> handleTaxonomyUpdate(Taxon taxon) async {
+    try {
+      // Check if taxon exists locally
+      final existing = await _taxonDao.getTaxonById(taxon.id!);
+
+      if (existing == null) {
+        // Insert new taxon
+        await _taxonDao.insertTaxon(taxon);
+        print('Inserted new taxon from Firebase: ${taxon.name}');
+      } else {
+        // Update existing taxon
+        await _taxonDao.updateTaxon(taxon);
+        print('Updated taxon from Firebase: ${taxon.name}');
+      }
+    } catch (e) {
+      print('Error handling taxonomy update: $e');
     }
   }
 }

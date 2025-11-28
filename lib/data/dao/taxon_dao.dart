@@ -146,6 +146,15 @@ class TaxonDao {
     return await db.delete('taxon', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> deleteAllTaxaByType(String specimenType) async {
+    final db = await _dbHelper.database;
+    return await db.delete(
+      'taxon',
+      where: 'specimenType = ?',
+      whereArgs: [specimenType],
+    );
+  }
+
   Future<void> updatePrimaryKey(int oldId, int newId) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
