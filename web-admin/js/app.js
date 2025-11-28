@@ -2208,6 +2208,16 @@ function createAnalysisData(results) {
     });
     data.push(['', '', '', '', '', areaLabel, ...areaValues]);
 
+    // Row 6: Taxonomy Table Headers
+    // Define rank names based on specimen type
+    const rankNames = specimenType === 'Phytoplankton'
+        ? ['Division', 'Class', 'Order', 'Family', 'Genus', 'Species']
+        : ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+
+    // Create header row with rank names and sample columns
+    const headerRow = [...rankNames, ...results.map((r, i) => `Sample ${i + 1}`)];
+    data.push(headerRow);
+
     // Add taxonomy rows
     const taxonomyRows = renderTaxonomyTree(taxonomyTree, results);
     data.push(...taxonomyRows);
