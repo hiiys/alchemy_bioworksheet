@@ -752,14 +752,7 @@ header h1 {
     color: #c62828;
 }
 
-/* Analysis Results Styles */
-.analysis-results-container {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin: 15px 0;
-}
+/* Analysis Results Styles (old - removed, see line 979 for current definition) */
 
 .results-summary {
     margin: 10px 0;
@@ -990,6 +983,7 @@ header h1 {
     border-collapse: collapse;
     font-size: 13px;
     min-width: 1000px;
+    table-layout: fixed;
 }
 
 .analysis-results-table th,
@@ -1015,43 +1009,42 @@ header h1 {
 
 .analysis-results-table th:first-child,
 .analysis-results-table td:first-child {
-    width: 30px;
-    min-width: 30px;
+    width: 40px;
 }
 
 .analysis-results-table th:nth-child(2),
 .analysis-results-table td:nth-child(2) {
-    min-width: 120px;
+    width: 15%;
 }
 
 .analysis-results-table th:nth-child(3),
 .analysis-results-table td:nth-child(3) {
-    min-width: 120px;
+    width: 13%;
 }
 
 .analysis-results-table th:nth-child(4),
 .analysis-results-table td:nth-child(4) {
-    min-width: 150px;
+    width: 17%;
 }
 
 .analysis-results-table th:nth-child(5),
 .analysis-results-table td:nth-child(5) {
-    min-width: 120px;
+    width: 13%;
 }
 
 .analysis-results-table th:nth-child(6),
 .analysis-results-table td:nth-child(6) {
-    min-width: 100px;
+    width: 12%;
 }
 
 .analysis-results-table th:nth-child(7),
 .analysis-results-table td:nth-child(7) {
-    min-width: 80px;
+    width: 10%;
 }
 
 .analysis-results-table th:nth-child(8),
 .analysis-results-table td:nth-child(8) {
-    min-width: 180px;
+    width: 20%;
 }
 
 /* Registration Page Styles */

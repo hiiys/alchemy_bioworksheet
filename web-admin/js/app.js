@@ -563,6 +563,20 @@ function parseCsv(text) {
     }
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+    // Detect CSV format
+    const isHierarchicalFormat = headers.includes('taxa_id') ||
+                                 (headers.includes('phylum') && headers.includes('genus'));
+
+    if (isHierarchicalFormat) {
+        parseHierarchicalCsv(lines, headers);
+    } else {
+        parseStandardCsv(lines, headers);
+    }
+}
+
+// Parse standard CSV format (id, parentId, name, rank, notes)
+function parseStandardCsv(lines, headers) {
     const requiredHeaders = ['id', 'name', 'rank'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
@@ -618,6 +632,77 @@ function parseCsv(text) {
 
     if (errors.length > 0 && parsedCsvData.length === 0) {
         showImportError('All rows have errors:<ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>');
+        return;
+    }
+
+    if (errors.length > 0) {
+        importErrors.innerHTML = `<strong>Warning:</strong> ${errors.length} row(s) skipped due to errors:<ul>` +
+            errors.slice(0, 5).map(e => `<li>${e}</li>`).join('') +
+            (errors.length > 5 ? `<li>...and ${errors.length - 5} more</li>` : '') + '</ul>';
+        importErrors.classList.remove('hidden');
+    } else {
+        importErrors.classList.add('hidden');
+    }
+
+    // Show preview
+    showCsvPreview();
+    importUploadBtn.disabled = false;
+}
+
+// Parse hierarchical CSV format (Taxa_ID, Phylum, Class, Order, Family, Genus)
+function parseHierarchicalCsv(lines, headers) {
+    const errors = [];
+    parsedCsvData = [];
+
+    // Map to track unique taxa by name+rank combination
+    const taxaMap = new Map();
+    let nextId = 1;
+
+    // Define rank hierarchy
+    const rankHierarchy = ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'];
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length !== headers.length) {
+            errors.push(`Row ${i + 1}: Column count mismatch`);
+            continue;
+        }
+
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index].trim();
+        });
+
+        // Build hierarchical structure
+        let parentId = null;
+
+        for (const rank of rankHierarchy) {
+            const rankLower = rank.toLowerCase();
+            const taxonName = row[rankLower];
+
+            if (!taxonName || taxonName === '') continue;
+
+            const key = `${taxonName}|${rank}`;
+
+            if (!taxaMap.has(key)) {
+                const taxon = {
+                    id: nextId++,
+                    parentId: parentId,
+                    name: taxonName,
+                    rank: rank,
+                    notes: null
+                };
+                taxaMap.set(key, taxon);
+                parsedCsvData.push(taxon);
+            }
+
+            // Update parent for next level
+            parentId = taxaMap.get(key).id;
+        }
+    }
+
+    if (parsedCsvData.length === 0) {
+        showImportError('No valid taxa found in CSV file.');
         return;
     }
 
@@ -829,22 +914,18 @@ downloadSampleBtn.addEventListener('click', () => {
 1000013,1000012,Siphonophora,Order,Colonial hydrozoans
 1000014,1000013,Diphyidae,Family,`;
     } else if (currentSpecimenType === 'Phytoplankton') {
-        sampleCsv = `id,parentId,name,rank,notes
-2000001,,Bacillariophyta,Division,Diatoms
-2000002,2000001,Bacillariophyceae,Class,Pennate diatoms
-2000003,2000002,Naviculales,Order,
-2000004,2000003,Naviculaceae,Family,
-2000005,2000004,Navicula,Genus,
-2000006,2000005,Navicula radiosa,Species,Common pennate diatom
-2000007,2000001,Coscinodiscophyceae,Class,Centric diatoms
-2000008,2000007,Thalassiosirales,Order,
-2000009,2000008,Thalassiosiraceae,Family,
-2000010,2000009,Thalassiosira,Genus,
-2000011,2000010,Thalassiosira pseudonana,Species,Model centric diatom
-2000012,,Dinophyta,Division,Dinoflagellates
-2000013,2000012,Dinophyceae,Class,
-2000014,2000013,Peridiniales,Order,
-2000015,2000014,Peridiniaceae,Family,`;
+        // Use hierarchical format for Phytoplankton
+        sampleCsv = `Taxa_ID,Phylum,Class,Order,Family,Genus
+Phyt001,Heterokontophyta,Bacillariophyceae,Achnanthales,Achnanthaceae,Achnanthes
+Phyt002,Heterokontophyta,Coscinodiscophyceae,Coscinodiscales,Hemidiscaceae,Actinocyclus
+Phyt003,Heterokontophyta,Coscinodiscophyceae,Coscinodiscales,Heliopeltaceae,Actinoptychus
+Phyt004,Dinoflagellata,Dinophyceae,Akashiwales,Akashiwaceae,Akashiwo
+Phyt005,Dinoflagellata,Dinophyceae,Gonyaulacales,Pyrophacaceae,Alexandrium
+Phyt006,Dinoflagellata,Dinophyceae,Dinophysales,Amphisoleniaceae,Amphisolenia
+Phyt007,Heterokontophyta,Bacillariophyceae,Thalassiophysales,Catenulaceae,Amphora
+Phyt008,Cyanobacteria,Cyanophyceae,Nostocales,Aphanizomenonaceae,Anabaena
+Phyt009,Cyanobacteria,Cyanophyceae,Nostocales,Aphanizomenonaceae,Aphanizomenon
+Phyt010,Cyanobacteria,Cyanophyceae,Oscillatoriales,Microcoleaceae,Arthrospira`;
     }
 
     // Download file
