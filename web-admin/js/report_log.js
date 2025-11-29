@@ -17,37 +17,96 @@ async function loadReportLogs() {
     reportLogList.innerHTML = '<p class="loading">Loading report logs...</p>';
 
     try {
-        let query = db.collection('report_logs').orderBy('dateGenerated', 'desc');
+        // Fetch all logs (no orderBy to avoid index requirements)
+        const snapshot = await db.collection('report_logs').get();
 
-        // Apply filters
-        const clientFilter = logClientFilter.value.trim();
-        if (clientFilter) {
-            query = query.where('clientName', '==', clientFilter);
-        }
+        console.log(`Fetched ${snapshot.docs.length} total logs from Firestore`);
 
-        const snapshot = await query.get();
         reportLogs = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
-        // Apply date filtering (client-side since Firestore has limitations)
-        const dateFrom = logDateFrom.value ? new Date(logDateFrom.value) : null;
-        const dateTo = logDateTo.value ? new Date(logDateTo.value) : null;
+        // Get filter values
+        const clientFilter = (logClientFilter.value || '').trim().toLowerCase();
+        const dateFromValue = logDateFrom.value;
+        const dateToValue = logDateTo.value;
 
-        if (dateFrom || dateTo) {
-            reportLogs = reportLogs.filter(log => {
-                const logDate = log.dateGenerated?.toDate() || new Date(log.dateGenerated);
-                if (dateFrom && logDate < dateFrom) return false;
-                if (dateTo && logDate > dateTo) return false;
-                return true;
-            });
+        console.log('Filters:', { clientFilter, dateFromValue, dateToValue });
+
+        // Apply client filter (case-insensitive partial match)
+        if (clientFilter) {
+            try {
+                reportLogs = reportLogs.filter(log => {
+                    const clientName = (log.clientName || '').toLowerCase();
+                    return clientName.includes(clientFilter);
+                });
+                console.log(`After client filter: ${reportLogs.length} logs`);
+            } catch (filterError) {
+                console.error('Error in client filter:', filterError);
+                throw new Error('Client filter failed: ' + filterError.message);
+            }
         }
 
+        // Apply date filtering (client-side)
+        if (dateFromValue || dateToValue) {
+            try {
+                const fromDate = dateFromValue ? new Date(dateFromValue + 'T00:00:00') : null;
+                const toDate = dateToValue ? new Date(dateToValue + 'T23:59:59') : null;
+
+                console.log('Date range:', { fromDate, toDate });
+
+                reportLogs = reportLogs.filter(log => {
+                    if (!log.dateGenerated) {
+                        console.log('Log missing dateGenerated:', log.id);
+                        return false;
+                    }
+
+                    let logDate;
+                    try {
+                        logDate = log.dateGenerated.toDate ? log.dateGenerated.toDate() : new Date(log.dateGenerated);
+                    } catch (dateError) {
+                        console.error('Error parsing date for log:', log.id, dateError);
+                        return false;
+                    }
+
+                    // Check if within date range
+                    if (fromDate && logDate < fromDate) {
+                        return false;
+                    }
+                    if (toDate && logDate > toDate) {
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                console.log(`After date filter: ${reportLogs.length} logs`);
+            } catch (filterError) {
+                console.error('Error in date filter:', filterError);
+                throw new Error('Date filter failed: ' + filterError.message);
+            }
+        }
+
+        // Sort by date generated (descending - newest first)
+        reportLogs.sort((a, b) => {
+            try {
+                const dateA = a.dateGenerated?.toDate ? a.dateGenerated.toDate() : new Date(a.dateGenerated || 0);
+                const dateB = b.dateGenerated?.toDate ? b.dateGenerated.toDate() : new Date(b.dateGenerated || 0);
+                return dateB - dateA;
+            } catch (sortError) {
+                console.error('Error sorting:', sortError);
+                return 0;
+            }
+        });
+
+        console.log(`Final result: ${reportLogs.length} logs`);
         displayReportLogs();
+
     } catch (error) {
         console.error('Error loading report logs:', error);
-        reportLogList.innerHTML = '<p class="error">Error loading report logs. Please try again.</p>';
+        console.error('Error stack:', error.stack);
+        reportLogList.innerHTML = `<p class="error">Error loading report logs: ${error.message || 'Unknown error'}. Please check console for details.</p>`;
     }
 }
 

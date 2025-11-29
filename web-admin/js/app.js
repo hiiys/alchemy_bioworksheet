@@ -1610,42 +1610,35 @@ function renderAnalysisResults() {
         return;
     }
 
-    let html = '<table class="analysis-results-table">';
-    html += `<thead>
-        <tr>
-            <th><input type="checkbox" id="select-all-checkbox"></th>
-            <th>Station</th>
-            <th>Type</th>
-            <th>Client</th>
-            <th>Biologist</th>
-            <th>Date</th>
-            <th>Taxa</th>
-            <th>Actions</th>
-        </tr>
-    </thead><tbody>`;
+    let html = '<table class="analysis-results-table"><thead><tr>';
+    html += '<th><input type="checkbox" id="select-all-checkbox"></th>';
+    html += '<th>Station</th>';
+    html += '<th>Type</th>';
+    html += '<th>Client</th>';
+    html += '<th>Biologist</th>';
+    html += '<th>Date</th>';
+    html += '<th>Taxa</th>';
+    html += '<th>Actions</th>';
+    html += '</tr></thead><tbody>';
 
     for (const result of analysisResults) {
         const typeClass = `result-type-${result.specimenType.toLowerCase()}`;
         const analyzedDate = result.analyzedDate ? new Date(result.analyzedDate).toLocaleDateString() : 'N/A';
         const taxaCount = result.counts ? result.counts.length : 0;
 
-        html += `
-            <tr class="analysis-result-item" data-id="${result.id}">
-                <td>
-                    <input type="checkbox" class="result-select" data-id="${result.id}" ${selectedResults.has(result.id) ? 'checked' : ''}>
-                </td>
-                <td>${result.stationId || 'N/A'}</td>
-                <td><span class="result-type ${typeClass}">${result.specimenType}</span></td>
-                <td>${result.clientName || 'N/A'}</td>
-                <td>${result.biologistId || 'N/A'}</td>
-                <td>${analyzedDate}</td>
-                <td>${taxaCount}</td>
-                <td>
-                    <button class="btn-secondary view-result-btn" data-id="${result.id}">View</button>
-                    <button class="btn-danger delete-result-btn" data-id="${result.id}" style="padding: 4px 8px; font-size: 11px;">Delete</button>
-                </td>
-            </tr>
-        `;
+        html += '<tr class="analysis-result-item" data-id="' + result.id + '">';
+        html += '<td><input type="checkbox" class="result-select" data-id="' + result.id + '" ' + (selectedResults.has(result.id) ? 'checked' : '') + '></td>';
+        html += '<td>' + (result.stationId || 'N/A') + '</td>';
+        html += '<td><span class="result-type ' + typeClass + '">' + result.specimenType + '</span></td>';
+        html += '<td>' + (result.clientName || 'N/A') + '</td>';
+        html += '<td>' + (result.biologistId || 'N/A') + '</td>';
+        html += '<td>' + analyzedDate + '</td>';
+        html += '<td>' + taxaCount + '</td>';
+        html += '<td>';
+        html += '<button class="btn-secondary view-result-btn" data-id="' + result.id + '">View</button> ';
+        html += '<button class="btn-danger delete-result-btn" data-id="' + result.id + '">Delete</button>';
+        html += '</td>';
+        html += '</tr>';
     }
 
     html += '</tbody></table>';
@@ -2233,15 +2226,15 @@ function createAnalysisData(results) {
     // Overall density
     const overallDensities = calculateOverallDensities(results);
     const densityLabel2 = specimenType === 'Macrobenthos' ? 'Overall density(units/m2):' : 'Overall density(units/L):';
-    data.push(['', '', '', '', '', densityLabel2, ...overallDensities]);
+    data.push(['', '', '', '', '', densityLabel2, ...overallDensities.map(d => d.toFixed(2))]);
 
     // Taxa diversity Index (H')
     const shannonIndices = calculateShannonIndices(results);
-    data.push(['', '', '', '', '', "Taxa diversity Index (H'):", ...shannonIndices]);
+    data.push(['', '', '', '', '', "Taxa diversity Index (H'):", ...shannonIndices.map(i => i.toFixed(2))]);
 
     // Evenness Index (J')
     const evennessIndices = calculateEvennessIndices(results);
-    data.push(['', '', '', '', '', "Eveness Index (J'):", ...evennessIndices]);
+    data.push(['', '', '', '', '', "Eveness Index (J'):", ...evennessIndices.map(i => i.toFixed(2))]);
 
     return data;
 }
@@ -2859,11 +2852,11 @@ generatePdfBtn.addEventListener('click', async () => {
 
             // Taxa diversity Index (H')
             const shannonIndices = calculateShannonIndices(pageResults);
-            tableData.push(["Taxa diversity Index (H'):", ...shannonIndices.map(i => i.toFixed(4))]);
+            tableData.push(["Taxa diversity Index (H'):", ...shannonIndices.map(i => i.toFixed(2))]);
 
             // Evenness Index (J')
             const evennessIndices = calculateEvennessIndices(pageResults);
-            tableData.push(["Eveness Index (J'):", ...evennessIndices.map(i => i.toFixed(4))]);
+            tableData.push(["Eveness Index (J'):", ...evennessIndices.map(i => i.toFixed(2))]);
 
             // Render complete table with custom formatting
             const infoY = 38;
