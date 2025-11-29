@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_state.dart';
-import '../../core/reference_id.dart';
 import '../../core/routing.dart';
 import '../../data/models.dart';
 import '../widgets/app_scaffold.dart';
@@ -340,9 +339,6 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
     final appState = Provider.of<AppState>(context, listen: false);
     var samples = await appState.getSamplesByOrder(order.id!);
     final addController = TextEditingController();
-    final recvController = TextEditingController();
-    final prefix = ReferenceId.prefixFor(order.specimenType);
-    recvController.text = prefix;
     DateTime date = DateTime.now();
     await showDialog(
       context: context,
@@ -376,30 +372,16 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                             specimenType: order.specimenType,
                             clientName: clientName,
                             sampleMarking: m,
-                            receiveId: recvController.text.trim().isEmpty
-                                ? null
-                                : recvController.text.trim(),
+                            receiveId: null,
                             dateAnalysis: date,
                           );
                           samples = await appState.getSamplesByOrder(order.id!);
                           setState(() {});
                           addController.clear();
-                          recvController.text = prefix;
                         },
                         child: const Text('Add'),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: recvController,
-                    inputFormatters: [
-                      ReferenceId.formatterForType(order.specimenType),
-                    ],
-                    decoration: const InputDecoration(
-                      labelText: 'Reference ID',
-                      border: OutlineInputBorder(),
-                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -437,24 +419,16 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                         return ListTile(
                           title: Text(s.sampleMarking ?? s.stationId),
                           subtitle: Text(
-                            'Reference ID: ${s.receiveId ?? ''} • Date Received: ${_formatDate(s.date)}${s.analyzedDate != null ? ' • Analyzed: ${_formatDate(s.analyzedDate!)}' : ''}',
+                            'Date Received: ${_formatDate(s.date)}${s.analyzedDate != null ? ' • Analyzed: ${_formatDate(s.analyzedDate!)}' : ''}',
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.edit),
                             tooltip: 'Edit Sample',
                             onPressed: () async {
-                              final recv = TextEditingController(
-                                text: s.receiveId ?? '',
+                              final markingController = TextEditingController(
+                                text: s.sampleMarking ?? s.stationId,
                               );
                               DateTime date = s.date;
-                              final formatter =
-                                  ReferenceId.formatterForType(
-                                    order.specimenType,
-                                  );
-                              if ((recv.text).isEmpty)
-                                recv.text = ReferenceId.prefixFor(
-                                  order.specimenType,
-                                );
                               await showDialog(
                                 context: context,
                                 builder: (context) => StatefulBuilder(
@@ -464,10 +438,9 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         TextField(
-                                          controller: recv,
-                                          inputFormatters: [formatter],
+                                          controller: markingController,
                                           decoration: const InputDecoration(
-                                            labelText: 'Reference ID',
+                                            labelText: 'Sample Marking',
                                             border: OutlineInputBorder(),
                                           ),
                                         ),
@@ -535,11 +508,10 @@ class _SampleInfoPageState extends State<SampleInfoPage> {
                                             remarks: s.remarks,
                                             completed: s.completed,
                                             sampleType: s.sampleType,
-                                            sampleMarking: s.sampleMarking,
-                                            receiveId:
-                                                recv.text.trim().isEmpty
+                                            sampleMarking: markingController.text.trim().isEmpty
                                                 ? null
-                                                : recv.text.trim(),
+                                                : markingController.text.trim(),
+                                            receiveId: s.receiveId,
                                           );
                                           await Provider.of<AppState>(
                                             context,
