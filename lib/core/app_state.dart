@@ -70,14 +70,21 @@ class AppState with ChangeNotifier {
   Future<void> _initializeRealtimeSync() async {
     try {
       // Set up callbacks for real-time updates
-      _realtimeSyncService.onSamplesUpdated = (samples) {
+      _realtimeSyncService.onSamplesUpdated = (samples) async {
         // Reload samples from local database when Firebase updates
-        _loadSamples();
+        // Also recalculate sample counts for orders
+        await _syncService.recalculateSampleCounts();
+        await _loadSamples();
+        await _loadOrders();
+        notifyListeners();
       };
 
-      _realtimeSyncService.onOrdersUpdated = (orders) {
+      _realtimeSyncService.onOrdersUpdated = (orders) async {
         // Reload orders from local database when Firebase updates
-        _loadOrders();
+        // Also recalculate sample counts for orders
+        await _syncService.recalculateSampleCounts();
+        await _loadOrders();
+        notifyListeners();
       };
 
       _realtimeSyncService.onTaxonomiesUpdated = (taxonomies) {
@@ -814,6 +821,14 @@ class AppState with ChangeNotifier {
   Future<Map<String, int>> syncAllFromFirebase({String? specimenType}) async {
     final orderCount = await syncOrdersFromFirebase(specimenType: specimenType);
     final sampleCount = await syncSamplesFromFirebase(specimenType: specimenType);
+
+    // Recalculate sample counts for all orders based on actual samples
+    await _syncService.recalculateSampleCounts();
+
+    // Reload orders to reflect updated counts
+    await _loadOrders();
+    notifyListeners();
+
     return {
       'orders': orderCount,
       'samples': sampleCount,
@@ -824,6 +839,10 @@ class AppState with ChangeNotifier {
   Future<void> forceSync({String? specimenType}) async {
     try {
       await _realtimeSyncService.forceSync(specimenType: specimenType);
+
+      // Recalculate sample counts for all orders based on actual samples
+      await _syncService.recalculateSampleCounts();
+
       await _loadSamples();
       await _loadOrders();
       notifyListeners();

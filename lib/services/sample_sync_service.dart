@@ -1023,4 +1023,65 @@ class SampleSyncService {
 
     return totalCount;
   }
+
+  /// Recalculate and update numberOfSamples for all orders based on actual sample count
+  /// This ensures the order's numberOfSamples field matches the actual count in local database
+  Future<void> recalculateSampleCounts() async {
+    try {
+      final allOrders = await _orderDao.getAllOrders();
+      final allSamples = await _sampleDao.getAllSamples();
+
+      for (final order in allOrders) {
+        if (order.id == null) continue;
+
+        // Count samples for this order
+        final samplesForOrder = allSamples.where((s) => s.orderId == order.id).length;
+
+        // Update order if count doesn't match
+        if (order.numberOfSamples != samplesForOrder) {
+          print('Updating numberOfSamples for order ${order.clientName}: ${order.numberOfSamples} -> $samplesForOrder');
+
+          final updatedOrder = OrderInfo(
+            id: order.id,
+            firebaseId: order.firebaseId,
+            clientName: order.clientName,
+            clientAddress: order.clientAddress,
+            specimenType: order.specimenType,
+            numberOfSamples: samplesForOrder, // Update with actual count
+            numberOfReplicates: order.numberOfReplicates,
+            dateReceived: order.dateReceived,
+            dateAnalysis: order.dateAnalysis,
+            gearUsed: order.gearUsed,
+            areaOfGrab: order.areaOfGrab,
+            sieveSize: order.sieveSize,
+            netDiameter: order.netDiameter,
+            netMesh: order.netMesh,
+            towType: order.towType,
+            filteredVolume: order.filteredVolume,
+            methodAnalysis: order.methodAnalysis,
+            reportNo: order.reportNo,
+            referenceId: order.referenceId,
+            comments: order.comments,
+            sammNo: order.sammNo,
+            authorizedBy: order.authorizedBy,
+            institution: order.institution,
+            sampleDescription: order.sampleDescription,
+            towDistance: order.towDistance,
+            sampleVolume: order.sampleVolume,
+            srCellVolume: order.srCellVolume,
+            srCellsCounted: order.srCellsCounted,
+            deviceId: order.deviceId,
+            createdAt: order.createdAt,
+            updatedAt: DateTime.now(),
+            synced: order.synced,
+          );
+          await _orderDao.updateOrder(updatedOrder);
+        }
+      }
+
+      print('Sample count recalculation complete');
+    } catch (e) {
+      print('Error recalculating sample counts: $e');
+    }
+  }
 }
