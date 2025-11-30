@@ -166,19 +166,41 @@ class AppState with ChangeNotifier {
       combined.addAll(await _orderDao.getOrdersByType('Zooplankton'));
       combined.addAll(await _orderDao.getOrdersByType('Phytoplankton'));
 
-      // Deduplicate using a combination of firebaseId (if available) and local id
-      final seen = <String>{};
+      // Deduplicate orders by firebaseId to prevent duplicates
+      // Orders with the same firebaseId are the same order synced from Firebase
+      final seenFirebaseIds = <String>{};
+      final seenLocalIds = <int>{};
       final deduped = <OrderInfo>[];
 
       for (final o in combined) {
-        // Create unique key: prefer firebaseId, fallback to local id
-        final key = o.firebaseId ?? 'local_${o.id}';
-        if (!seen.contains(key)) {
-          seen.add(key);
+        bool isDuplicate = false;
+
+        // If order has firebaseId, check if we've seen this firebaseId before
+        if (o.firebaseId != null && o.firebaseId!.isNotEmpty) {
+          if (seenFirebaseIds.contains(o.firebaseId)) {
+            isDuplicate = true;
+            print('Skipping duplicate order with firebaseId: ${o.firebaseId}, client: ${o.clientName}');
+          } else {
+            seenFirebaseIds.add(o.firebaseId!);
+          }
+        }
+
+        // For local-only orders (no firebaseId), deduplicate by local ID
+        if (!isDuplicate && o.id != null) {
+          if (seenLocalIds.contains(o.id!)) {
+            isDuplicate = true;
+            print('Skipping duplicate order with local id: ${o.id}, client: ${o.clientName}');
+          } else {
+            seenLocalIds.add(o.id!);
+          }
+        }
+
+        if (!isDuplicate) {
           deduped.add(o);
         }
       }
 
+      print('Loaded ${combined.length} orders, deduplicated to ${deduped.length} orders');
       _orders = deduped..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
       notifyListeners();
     } catch (e) {
@@ -473,7 +495,9 @@ class AppState with ChangeNotifier {
       }
     }
 
+    // Reload both samples and orders to update the UI
     await _loadSamples();
+    await _loadOrders(); // Reload orders to update numberOfSamples display
     notifyListeners();
     return id;
   }
