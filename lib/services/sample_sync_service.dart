@@ -185,16 +185,25 @@ class SampleSyncService {
       // CRITICAL FIX: Convert local orderId to Firebase document ID
       // The web admin queries samples by Firebase document ID, not local SQLite ID
       if (sample.orderId != null) {
+        print('Sample upload: Local orderId = ${sample.orderId}');
         final order = await _orderDao.getOrderById(sample.orderId!);
         if (order != null && order.firebaseId != null) {
           // Use Firebase document ID instead of local ID
           sampleData['orderId'] = order.firebaseId;
-          print('Converted orderId from ${sample.orderId} to ${order.firebaseId}');
-        } else {
-          print('Warning: Order ${sample.orderId} not found or has no Firebase ID');
+          print('✓ Converted orderId from local ${sample.orderId} to Firebase ${order.firebaseId}');
+          print('  Order client: ${order.clientName}');
+        } else if (order != null) {
+          print('✗ ERROR: Order ${sample.orderId} (${order.clientName}) has no Firebase ID!');
+          print('  This sample will NOT appear in web admin Orders page.');
+          print('  Falling back to local ID as string, but this will cause sync issues.');
           // Keep the local ID as fallback, but this may cause sync issues
           sampleData['orderId'] = sample.orderId.toString();
+        } else {
+          print('✗ ERROR: Order ${sample.orderId} not found in local database!');
+          sampleData['orderId'] = sample.orderId.toString();
         }
+      } else {
+        print('Warning: Sample has no orderId');
       }
 
       final docRef = await _samplesRef.add(sampleData);
