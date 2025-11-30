@@ -293,11 +293,47 @@ async function loadOrders() {
             ...doc.data()
         }));
 
+        // Recalculate actual sample counts for each order
+        await recalculateOrderSampleCounts();
+
         updateOrdersAutocomplete();
         renderOrders();
     } catch (error) {
         console.error('Error loading orders:', error);
         ordersList.innerHTML = `<p class="error">Error loading orders: ${error.message}</p>`;
+    }
+}
+
+// Recalculate sample counts for all orders based on actual samples in Firestore
+async function recalculateOrderSampleCounts() {
+    try {
+        // Get all samples for the current specimen type
+        const samplesRef = db.collection('samples');
+        const samplesSnapshot = await samplesRef.where('sampleType', '==', currentOrdersType).get();
+
+        const samplesByOrder = {};
+
+        // Count samples for each order
+        samplesSnapshot.docs.forEach(doc => {
+            const sample = doc.data();
+            const orderId = sample.orderId;
+            if (orderId) {
+                samplesByOrder[orderId] = (samplesByOrder[orderId] || 0) + 1;
+            }
+        });
+
+        // Update numberOfSamples for each order with actual count
+        allOrders.forEach(order => {
+            const actualCount = samplesByOrder[order.id] || 0;
+            order.actualSampleCount = actualCount;
+
+            // Log if there's a discrepancy
+            if (order.numberOfSamples !== actualCount) {
+                console.log(`Order ${order.clientName} (${order.id}): stored=${order.numberOfSamples}, actual=${actualCount}`);
+            }
+        });
+    } catch (error) {
+        console.error('Error recalculating sample counts:', error);
     }
 }
 
@@ -329,11 +365,14 @@ function renderOrders() {
     html += '</tr></thead><tbody>';
 
     filteredOrders.forEach(order => {
+        // Use actualSampleCount if available, otherwise fall back to numberOfSamples
+        const sampleCount = order.actualSampleCount !== undefined ? order.actualSampleCount : (order.numberOfSamples || 0);
+
         html += '<tr>';
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${order.clientName || 'N/A'}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${order.specimenType || 'N/A'}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${formatDate(order.dateReceived)}</td>`;
-        html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${order.numberOfSamples || 0}</td>`;
+        html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${sampleCount}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${order.numberOfReplicates || 0}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')">${order.reportNo || 'N/A'}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditOrderModal('${order.id}')"><strong>${order.id || 'N/A'}</strong></td>`;
