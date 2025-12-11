@@ -1,0 +1,199 @@
+UniqueID,Phylum,Class,Order,Family,Genus,Species
+Alc_Zoo_1,Cnidaria,,,,,Anthozoa larvae
+Alc_Zoo_2,Cnidaria,,,,,Planulae larvae
+Alc_Zoo_3,Cnidaria,Hydrozoa,,,,Actinula larvae
+Alc_Zoo_4,Cnidaria,Hydrozoa,Leptothecata,Campanulariidae,Obelia,
+Alc_Zoo_5,Cnidaria,Hydrozoa,Limnomedusae,Geryoniidae,Liriope,
+Alc_Zoo_6,Cnidaria,Hydrozoa,Siphonophorae,,,
+Alc_Zoo_7,Cnidaria,Hydrozoa,Trachymedusae,Rhopalonematidae,Aglaura,
+Alc_Zoo_8,Cnidaria,Hydrozoa,Trachymedusae,Rhopalonematidae,Aglantha,
+Alc_Zoo_9,Cnidaria,Scyphozoa,,,,Ephyra larvae
+Alc_Zoo_10,Ctenophora,,,,,Other ctenophores
+Alc_Zoo_11,Ctenophora,Tentaculata,Lobata,Bolinopsidae,Bolinopsis,
+Alc_Zoo_12,Ctenophora,Tentaculata,Cydippida,Cydippidae,Pleurobrachia,
+Alc_Zoo_13,Ctenophora,Nuda,Beroida,Beroidae,Beroe,
+Alc_Zoo_14,Annelida,,,,,Other annelids
+Alc_Zoo_15,Annelida,Polychaeta,,,,Polychaete larvae
+Alc_Zoo_16,Annelida,Polychaeta,Phyllodocida,Tomopteridae,Tomopteris,
+Alc_Zoo_17,Annelida,Polychaeta,Terebellida,Pectinariidae,Pectinaria,
+Alc_Zoo_18,Platyhelminthes,Trematoda,,,,
+Alc_Zoo_19,Nematoda,,,,,Nematode
+Alc_Zoo_20,Arthropoda,Branchiopoda,,,,Other branchiopods
+Alc_Zoo_21,Arthropoda,Branchiopoda,Onychopoda,Podonidae,Evadne,
+Alc_Zoo_22,Arthropoda,Branchiopoda,Onychopoda,Podonidae,Podon,
+Alc_Zoo_23,Arthropoda,Ostracoda,,,,Other ostracods
+Alc_Zoo_24,Arthropoda,Ostracoda,Halocyprida,Halocyprididae,Euconchoecia,
+Alc_Zoo_25,Arthropoda,Ostracoda,Myodocopida,Cypridinidae,Cypridina,
+Alc_Zoo_26,Arthropoda,Copepoda,,,,Copepod egg sac
+Alc_Zoo_27,Arthropoda,Copepoda,,,,Copepod nauplii
+Alc_Zoo_28,Arthropoda,Copepoda,Calanoida,,,Calanoid copepodite
+Alc_Zoo_29,Arthropoda,Copepoda,Calanoida,,,Other calanoids
+Alc_Zoo_30,Arthropoda,Copepoda,Calanoida,Acartiidae,Acartia,
+Alc_Zoo_31,Arthropoda,Copepoda,Calanoida,Aetideidae,Aetideus,
+Alc_Zoo_32,Arthropoda,Copepoda,Calanoida,Arietellidae,Metacalanus,
+Alc_Zoo_33,Arthropoda,Copepoda,Calanoida,Augaptilidae,Haloptilus,
+Alc_Zoo_34,Arthropoda,Copepoda,Calanoida,Calanidae,Undinula,
+Alc_Zoo_35,Arthropoda,Copepoda,Calanoida,Calanidae,Calanus,
+Alc_Zoo_36,Arthropoda,Copepoda,Calanoida,Calanidae,Canthocalanus,
+Alc_Zoo_37,Arthropoda,Copepoda,Calanoida,Calanidae,Neocalanus ,
+Alc_Zoo_38,Arthropoda,Copepoda,Calanoida,Calanidae,Nannocalanus,
+Alc_Zoo_39,Arthropoda,Copepoda,Calanoida,Calanidae,Cosmocalanus,
+Alc_Zoo_40,Arthropoda,Copepoda,Calanoida,Calanidae,Mesocalanus,
+Alc_Zoo_41,Arthropoda,Copepoda,Calanoida,Candaciidae,Candacia,
+Alc_Zoo_42,Arthropoda,Copepoda,Calanoida,Centropagidae,Centropages,
+Alc_Zoo_43,Arthropoda,Copepoda,Calanoida,Clausocalanidae,Clausocalanus,
+Alc_Zoo_44,Arthropoda,Copepoda,Calanoida,Clausocalanidae,Pseudocalanus,
+Alc_Zoo_45,Arthropoda,Copepoda,Calanoida,Euchaetidae,Euchaeta,
+Alc_Zoo_46,Arthropoda,Copepoda,Calanoida,Eucalanidae,Eucalanus,
+Alc_Zoo_47,Arthropoda,Copepoda,Calanoida,Eucalanidae,Subeucalanus,
+Alc_Zoo_48,Arthropoda,Copepoda,Calanoida,Paracalanidae,Acrocalanus,
+Alc_Zoo_49,Arthropoda,Copepoda,Calanoida,Paracalanidae,Paracalanus,
+Alc_Zoo_50,Arthropoda,Copepoda,Calanoida,Paracalanidae,Parvocalanus,
+Alc_Zoo_51,Arthropoda,Copepoda,Calanoida,Paracalanidae,Calocalanus,
+Alc_Zoo_52,Arthropoda,Copepoda,Calanoida,Pontellidae,Calanopia,
+Alc_Zoo_53,Arthropoda,Copepoda,Calanoida,Pontellidae,Labidocera,
+Alc_Zoo_54,Arthropoda,Copepoda,Calanoida,Pontellidae,Pontella,
+Alc_Zoo_55,Arthropoda,Copepoda,Calanoida,Pontellidae,Pontellina,
+Alc_Zoo_56,Arthropoda,Copepoda,Calanoida,Temoridae,Temora,
+Alc_Zoo_57,Arthropoda,Copepoda,Calanoida,Temoridae,Eurytemora,
+Alc_Zoo_58,Arthropoda,Copepoda,Calanoida,Tortanidae,Tortanus,
+Alc_Zoo_59,Arthropoda,Copepoda,Calanoida,Pseudodiaptomidae,Pseudodiaptomus,
+Alc_Zoo_60,Arthropoda,Copepoda,Cyclopoida,,,Cyclopoid copepodite
+Alc_Zoo_61,Arthropoda,Copepoda,Cyclopoida,,,Other cyclopoids
+Alc_Zoo_62,Arthropoda,Copepoda,Cyclopoida,Corycaeidae,Corycaeus,
+Alc_Zoo_63,Arthropoda,Copepoda,Cyclopoida,Oithonidae,Oithona,
+Alc_Zoo_64,Arthropoda,Copepoda,Cyclopoida,Oncaeidae,Oncaea,
+Alc_Zoo_65,Arthropoda,Copepoda,Cyclopoida,Oncaeidae,Triconia,
+Alc_Zoo_66,Arthropoda,Copepoda,Cyclopoida,Sapphirinidae,Copilia,
+Alc_Zoo_67,Arthropoda,Copepoda,Cyclopoida,Sapphirinidae,Sapphirina,
+Alc_Zoo_68,Arthropoda,Copepoda,Cyclopoida,Clausidiidae,Hemicyclops,
+Alc_Zoo_69,Arthropoda,Copepoda,Harpacticoida,,Other harpacticoids,
+Alc_Zoo_70,Arthropoda,Copepoda,Harpacticoida,Ectinosomatidae,Microsetella,
+Alc_Zoo_71,Arthropoda,Copepoda,Harpacticoida,Tachidiidae,Euterpina,
+Alc_Zoo_72,Arthropoda,Copepoda,Harpacticoida,Peltidiidae,Clytemnestra,
+Alc_Zoo_73,Arthropoda,Copepoda,Harpacticoida,Laophontidae,Onychocamptus ,
+Alc_Zoo_74,Arthropoda,Copepoda,Harpacticoida,Miraciidae,Macrosetella,
+Alc_Zoo_75,Arthropoda,Copepoda,Harpacticoida,Miraciidae,Miracia ,
+Alc_Zoo_76,Arthropoda,Copepoda,Harpacticoida,Canuellidae,Canuella,
+Alc_Zoo_77,Arthropoda,Copepoda,Harpacticoida,Harpacticidae,Harpacticus,
+Alc_Zoo_78,Arthropoda,Copepoda,Harpacticoida,Harpacticidae,Zaus,
+Alc_Zoo_79,Arthropoda,Copepoda,Harpacticoida,Harpacticidae,Tigriopus,
+Alc_Zoo_80,Arthropoda,Copepoda,Monstrilloida,Monstrilloidae,Monstrilla,
+Alc_Zoo_81,Arthropoda,Copepoda,Monstrilloida,Monstrilloidae,Cymbasoma,
+Alc_Zoo_82,Arthropoda,Copepoda,Cirripedia,,,Cirripede nauplii
+Alc_Zoo_83,Arthropoda,Copepoda,Malacostraca,,,Malacostracan larvae
+Alc_Zoo_84,Arthropoda,Copepoda,Mysidacea,,,Mysids
+Alc_Zoo_85,Arthropoda,Copepoda,Amphipoda,Hyperiidae,,
+Alc_Zoo_86,Arthropoda,Copepoda,Amphipoda,Gammariidae,,
+Alc_Zoo_87,Arthropoda,Copepoda,Isopoda,,,Isopod
+Alc_Zoo_88,Arthropoda,Copepoda,Decapoda,,,Zoea larvae
+Alc_Zoo_89,Arthropoda,Copepoda,Decapoda,,,Megalopa larvae
+Alc_Zoo_90,Arthropoda,Copepoda,Decapoda,,,Anomuran larvae
+Alc_Zoo_91,Arthropoda,Copepoda,Decapoda,,,Phyllosoma larvae
+Alc_Zoo_92,Arthropoda,Copepoda,Decapoda,,,Penaeid larvae
+Alc_Zoo_93,Arthropoda,Copepoda,Decapoda,,,Stomatopod larvae
+Alc_Zoo_94,Arthropoda,Copepoda,Decapoda,,,Caridean larvae
+Alc_Zoo_95,Arthropoda,Copepoda,Decapoda,,,Decapod protozoaea
+Alc_Zoo_96,Arthropoda,Copepoda,Decapoda,,,Carcinus larvae
+Alc_Zoo_97,Arthropoda,Copepoda,Decapoda,,,Macruran larvae
+Alc_Zoo_98,Arthropoda,Copepoda,Decapoda,Luciferidae,Lucifer,
+Alc_Zoo_99,Arthropoda,Copepoda,Leptostraca,Nebaliidae,Nebalia,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,Mollusca,Gastropoda,,,,Gastropod larvae
+,Mollusca,Gastropoda,Pteropoda,Creseidae,Creseis,
+,Mollusca,Gastropoda,Pteropoda,Cavoliniinae,Cavolinia,
+,Mollusca,Bivalvia,,,,Bivalve  larvae
+,Mollusca,Cephalopoda,,,,Cephalopod larvae
+,Bryozoa,,,,,Cyphonautes larvae
+,Nemertea,Nemertea incertea sedis,,,Planaria,
+,Phoronida,,,,,Actinotrocha larvae
+,Rotifera,,,,,Rotifers
+,Chaetognatha,Sagittoidea,Aphragmophora,Sagittidae,Aidanosagitta,
+,Chaetognatha,Sagittoidea,Aphragmophora,Sagittidae,Flaccisagitta,
+,Chaetognatha,Sagittoidea,Aphragmophora,Sagittidae,Serratosagitta,
+,Echinodermata,,,,,Bipinnaria larvae
+,Echinodermata,,,,,Doliolaria larvae
+,Echinodermata,,,,,Echinopluteus larvae
+,Echinodermata,,,,,Ophiuroid larvae
+,Chordata,Appendicularia,Copelata,Fritillaridae,Fritillaria,
+,Chordata,Appendicularia,,Oikopleuridae,Oikopleura,
+,Chordata,Thaliacea,Doliolida,Doliolidae,Doliolum,
+,Chordata,Thaliacea,Salpida,Salpidae,Salpa,
+,Chordata,Pisces,,,,Fish larvae
+,Chordata,Pisces,,,,Fish eggs

@@ -166,6 +166,26 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
 
+            const SizedBox(height: 12),
+
+            // Export Logs button
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.exportLogs,
+                    ),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Export Logs'),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
             // Dashboard summary
             Card(
               child: Padding(

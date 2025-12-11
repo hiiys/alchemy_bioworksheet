@@ -186,6 +186,7 @@ class AnalysisUploadService {
         reportNo: reportNo,  // Use auto-generated Report No.
         referenceId: order?.referenceId ?? sample.receiveId,
         dateReceived: order?.dateReceived,
+        sampleDescription: order?.sampleDescription,
         areaOfGrab: _parseDouble(order?.areaOfGrab),
         filteredVolume: _parseDouble(order?.filteredVolume),
         dilutionFactor: dilutionFactor,
@@ -196,8 +197,9 @@ class AnalysisUploadService {
 
       print('Analysis uploaded successfully: ${docRef.id}');
 
+      /* 
       // CRITICAL FIX: Update the sample in Firebase to mark it as completed
-      // This ensures the completed status persists and isn't overwritten by sync
+      // DISABLED: User requested to keep completed status local-only
       if (sample.firebaseId != null) {
         try {
           await _firestore.collection('samples').doc(sample.firebaseId).update({
@@ -213,6 +215,7 @@ class AnalysisUploadService {
       } else {
         print('Warning: Sample has no Firebase ID, cannot update completed status in Firebase');
       }
+      */
 
       return docRef.id;
     } catch (e) {

@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "alchemy-bioworksheet"
+    "default": "alchemybioworks-dev",
+    "dev": "alchemybioworks-dev",
+    "prod": "alchemy-bioworksheet"
   }
 }

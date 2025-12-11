@@ -761,43 +761,7 @@ header h1 {
     color: #666;
 }
 
-.analysis-result-item {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.analysis-result-item:hover {
-    background: #f5f5f5;
-}
-
-.analysis-result-item:last-child {
-    border-bottom: none;
-}
-
-.result-checkbox {
-    flex-shrink: 0;
-}
-
-.result-info {
-    flex: 1;
-}
-
-.result-header {
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-
-.result-meta {
-    font-size: 12px;
-    color: #666;
-}
-
-.result-meta span {
-    margin-right: 15px;
-}
+/* Removed old analysis result list styles that conflicted with table layout */
 
 .result-type {
     display: inline-block;
@@ -822,19 +786,7 @@ header h1 {
     color: #2e7d32;
 }
 
-.result-counts {
-    font-size: 12px;
-    color: #888;
-}
-
-.result-actions {
-    flex-shrink: 0;
-}
-
-.result-actions button {
-    padding: 4px 8px;
-    font-size: 11px;
-}
+/* Removed unused result-counts and result-actions styles */
 
 /* Page Content */
 .page-content {
@@ -975,13 +927,14 @@ header h1 {
     background: white;
     border-radius: 4px;
     max-height: 600px;
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: auto;
     border: 1px solid #ddd;
 }
 
 .analysis-results-table {
     width: 100%;
-    min-width: 1100px;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 13px;
     table-layout: auto;
@@ -989,9 +942,13 @@ header h1 {
 
 .analysis-results-table th,
 .analysis-results-table td {
-    padding: 8px 12px;
+    padding: 10px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
+}
+
+.analysis-results-table td {
+    vertical-align: middle;
     white-space: nowrap;
 }
 
@@ -999,58 +956,68 @@ header h1 {
     background: #f5f5f5;
     font-weight: 600;
     color: #333;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    border-bottom: 2px solid #ddd;
+    white-space: nowrap;
 }
 
 .analysis-results-table tbody tr:hover {
     background: #f9f9f9;
 }
 
-.analysis-results-table th:first-child,
-.analysis-results-table td:first-child {
+.analysis-results-table th:nth-child(1),
+.analysis-results-table td:nth-child(1) {
     width: 50px;
     min-width: 50px;
     max-width: 50px;
     text-align: center;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .analysis-results-table th:nth-child(2),
 .analysis-results-table td:nth-child(2) {
-    min-width: 120px;
+    min-width: 80px;
+    text-align: left;
 }
 
 .analysis-results-table th:nth-child(3),
 .analysis-results-table td:nth-child(3) {
-    min-width: 140px;
+    min-width: 120px;
+    text-align: left;
 }
 
 .analysis-results-table th:nth-child(4),
 .analysis-results-table td:nth-child(4) {
-    min-width: 180px;
+    min-width: 120px;
+    text-align: left;
 }
 
 .analysis-results-table th:nth-child(5),
 .analysis-results-table td:nth-child(5) {
-    min-width: 120px;
+    min-width: 100px;
+    text-align: left;
 }
 
 .analysis-results-table th:nth-child(6),
 .analysis-results-table td:nth-child(6) {
-    min-width: 120px;
+    min-width: 100px;
+    text-align: left;
 }
 
 .analysis-results-table th:nth-child(7),
 .analysis-results-table td:nth-child(7) {
-    min-width: 80px;
+    width: 60px;
     text-align: center;
 }
 
 .analysis-results-table th:nth-child(8),
 .analysis-results-table td:nth-child(8) {
-    min-width: 180px;
+    min-width: 150px;
+    text-align: center;
+}
+
+.analysis-results-table td:nth-child(8) button {
+    margin-right: 5px;
+    display: inline-block;
 }
 
 /* Registration Page Styles */

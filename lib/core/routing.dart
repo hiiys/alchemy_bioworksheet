@@ -10,6 +10,7 @@ class AppRoutes {
   static const String analysis = '/analysis';
   static const String export = '/export';
   static const String orderRegistration = '/order-registration';
+  static const String exportLogs = '/export-logs';
 }
 
 class AppPageTitles {

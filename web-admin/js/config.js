@@ -1,11 +1,11 @@
 // Firebase configuration for web
 const firebaseConfig = {
-    apiKey: "AIzaSyBIsTfSJrzOs9crnF8ew2MgJg1Xt_FoiWI",
-    authDomain: "alchemy-bioworksheet.firebaseapp.com",
-    projectId: "alchemy-bioworksheet",
-    storageBucket: "alchemy-bioworksheet.firebasestorage.app",
-    messagingSenderId: "126522184124",
-    appId: "1:126522184124:web:taxonomy-admin"
+    apiKey: "AIzaSyCMcCIjIGOgkHYKFAahSq-IG6AMRuwjUJc",
+    authDomain: "alchemybioworks-dev.firebaseapp.com",
+    projectId: "alchemybioworks-dev",
+    storageBucket: "alchemybioworks-dev.firebasestorage.app",
+    messagingSenderId: "291308078998",
+    appId: "1:291308078998:web:13aaa6f37182fadc7c7fb7"
 };
 
 // Initialize Firebase
@@ -19,5 +19,5 @@ const db = firebase.firestore();
 const rankDefinitions = {
     Macrobenthos: ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'],
     Zooplankton: ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'],
-    Phytoplankton: ['Division', 'Class', 'Order', 'Family', 'Genus', 'Species']
+    Phytoplankton: ['Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species']
 };

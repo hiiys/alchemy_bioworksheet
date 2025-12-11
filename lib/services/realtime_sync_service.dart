@@ -48,6 +48,8 @@ class RealtimeSyncService {
 
     // Start real-time sync if online
     if (_isOnline) {
+      // Push any pending local changes first
+      await _sampleSyncService.syncPendingItemsToCloud();
       await startRealtimeSync(specimenType: specimenType);
     }
   }
@@ -64,7 +66,10 @@ class RealtimeSyncService {
       // If we just came online, start sync
       if (!wasOnline && _isOnline) {
         print('Device came online, starting real-time sync...');
-        startRealtimeSync(specimenType: _currentSpecimenType);
+        // Push any pending local changes first
+        _sampleSyncService.syncPendingItemsToCloud().then((_) {
+          startRealtimeSync(specimenType: _currentSpecimenType);
+        });
       }
 
       // If we went offline, stop sync
@@ -117,11 +122,9 @@ class RealtimeSyncService {
     try {
       print('Performing initial sync...');
 
-      // Sync taxonomies first
-      final taxaCount = await _sampleSyncService.syncTaxonomiesToLocal(
-        specimenType: specimenType,
-      );
-      print('Initial sync: $taxaCount taxa synced');
+      // Sync all taxonomies (Macrobenthos, Zooplankton, Phytoplankton)
+      final taxaCount = await _sampleSyncService.syncAllTaxonomies();
+      print('Initial sync: $taxaCount taxa synced across all specimen types');
 
       // Sync orders
       final orderCount = await _sampleSyncService.syncOrdersToLocal(
@@ -206,35 +209,43 @@ class RealtimeSyncService {
     );
   }
 
-  /// Subscribe to real-time Taxonomies stream
+  /// Subscribe to real-time Taxonomies stream for all specimen types
   void _subscribeToTaxonomiesStream({String? specimenType}) {
     // Cancel existing subscription if any
     _taxonomiesSubscription?.cancel();
 
-    if (specimenType == null) {
-      print('No specimen type specified for taxonomy sync');
-      return;
+    print('Subscribing to taxonomies streams for all specimen types...');
+
+    // Subscribe to combined stream of all three specimen types
+    final specimenTypes = ['Macrobenthos', 'Zooplankton', 'Phytoplankton'];
+
+    // Combine streams from all specimen types
+    final streams = specimenTypes.map((type) =>
+      _sampleSyncService.getTaxonomiesStream(specimenType: type)
+    ).toList();
+
+    // Listen to any changes in any taxonomy stream
+    // When any taxonomy changes, re-sync all taxonomies
+    for (final stream in streams) {
+      stream.listen(
+        (taxonomies) async {
+          if (taxonomies.isNotEmpty) {
+            final type = taxonomies.first.specimenType ?? 'unknown';
+            print('Received ${taxonomies.length} taxonomies from Firebase stream for $type');
+
+            // Sync all taxonomies to ensure consistency
+            await _sampleSyncService.syncAllTaxonomies();
+
+            // Notify listeners
+            onTaxonomiesUpdated?.call(taxonomies);
+          }
+        },
+        onError: (error) {
+          print('Error in taxonomies stream: $error');
+          onSyncStatusChanged?.call('Sync error');
+        },
+      );
     }
-
-    print('Subscribing to taxonomies stream for $specimenType...');
-
-    _taxonomiesSubscription = _sampleSyncService
-        .getTaxonomiesStream(specimenType: specimenType)
-        .listen(
-      (taxonomies) async {
-        print('Received ${taxonomies.length} taxonomies from Firebase stream for $specimenType');
-
-        // Sync all taxonomies to local database
-        await _sampleSyncService.syncTaxonomiesToLocal(specimenType: specimenType);
-
-        // Notify listeners
-        onTaxonomiesUpdated?.call(taxonomies);
-      },
-      onError: (error) {
-        print('Error in taxonomies stream: $error');
-        onSyncStatusChanged?.call('Sync error');
-      },
-    );
   }
 
   /// Stop real-time synchronization

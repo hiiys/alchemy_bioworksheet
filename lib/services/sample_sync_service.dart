@@ -181,6 +181,7 @@ class SampleSyncService {
       final sampleData = sample.toFirestore();
       sampleData['deviceId'] = deviceId;
       sampleData['receiveId'] = referenceId; // Set auto-generated Reference ID
+      sampleData.remove('completed'); // Keep completed status local-only
 
       // CRITICAL FIX: Convert local orderId to Firebase document ID
       // The web admin queries samples by Firebase document ID, not local SQLite ID
@@ -430,13 +431,16 @@ class SampleSyncService {
               lon: sample.lon,
               habitat: sample.habitat,
               client: sample.client,
-              biologistId: sample.biologistId,
+              biologistId: sample.biologistId ?? existing.biologistId, // Preserve local if null
               remarks: sample.remarks,
-              completed: sample.completed,
-              sampleType: sample.sampleType,
+              completed: existing.completed, // Keep local status
+              // Preserve local type if incoming is default 'Macrobenthos' but local is different (likely data loss scenario)
+              sampleType: (sample.sampleType == 'Macrobenthos' && existing.sampleType != 'Macrobenthos') 
+                  ? existing.sampleType 
+                  : sample.sampleType,
               sampleMarking: sample.sampleMarking,
               receiveId: sample.receiveId,
-              analyzedDate: sample.analyzedDate,
+              analyzedDate: sample.analyzedDate ?? existing.analyzedDate, // Preserve local if null
               deviceId: sample.deviceId,
               createdAt: sample.createdAt,
               updatedAt: sample.updatedAt,
@@ -545,6 +549,44 @@ class SampleSyncService {
     }
   }
 
+  /// Sync pending local items (orders/samples) to Cloud
+  /// This is critical for offline-first support - pushing data when back online
+  Future<void> syncPendingItemsToCloud() async {
+    try {
+      print('Checking for pending items to upload...');
+
+      // 1. Upload pending orders first
+      final allOrders = await _orderDao.getAllOrders();
+      final pendingOrders = allOrders.where((o) => o.firebaseId == null).toList();
+
+      if (pendingOrders.isNotEmpty) {
+        print('Found ${pendingOrders.length} pending orders to upload');
+        for (final order in pendingOrders) {
+          await uploadOrder(order);
+        }
+      }
+
+      // 2. Upload pending samples
+      // Note: uploadSample handles orderId resolution, so if order was just uploaded,
+      // the sample will correctly link to the new firebaseId
+      final allSamples = await _sampleDao.getAllSamples();
+      final pendingSamples = allSamples.where((s) => s.firebaseId == null).toList();
+
+      if (pendingSamples.isNotEmpty) {
+        print('Found ${pendingSamples.length} pending samples to upload');
+        for (final sample in pendingSamples) {
+          await uploadSample(sample);
+        }
+      }
+
+      if (pendingOrders.isEmpty && pendingSamples.isEmpty) {
+        print('No pending items to upload');
+      }
+    } catch (e) {
+      print('Error syncing pending items to cloud: $e');
+    }
+  }
+
   /// Get real-time stream of samples from Firebase
   /// Returns a Stream that emits updated sample lists whenever changes occur in Firestore
   Stream<List<Sample>> getSamplesStream({String? specimenType}) {
@@ -613,9 +655,9 @@ class SampleSyncService {
           if (s.sampleMarking != sample.sampleMarking || s.sampleType != sample.sampleType) {
             return false;
           }
-          if (s.createdAt == null) return false;
-          final age = now.difference(s.createdAt!);
-          return age.inSeconds < 10 && s.firebaseId == null;
+          // Match any local sample that hasn't been synced to Firebase yet
+          // Relaxing the time check to prevent duplicates if sync takes longer than 10s
+          return s.firebaseId == null;
         }).firstOrNull;
 
         if (recentLocal != null) {
@@ -632,7 +674,7 @@ class SampleSyncService {
             client: sample.client,
             biologistId: sample.biologistId,
             remarks: sample.remarks,
-            completed: sample.completed,
+            completed: recentLocal.completed, // Keep local status
             sampleType: sample.sampleType,
             sampleMarking: sample.sampleMarking,
             receiveId: sample.receiveId,
@@ -672,13 +714,16 @@ class SampleSyncService {
               lon: sample.lon,
               habitat: sample.habitat,
               client: sample.client,
-              biologistId: sample.biologistId,
+              biologistId: sample.biologistId ?? existing.biologistId, // Preserve local if null
               remarks: sample.remarks,
-              completed: sample.completed,
-              sampleType: sample.sampleType,
+              completed: existing.completed, // Keep local status
+              // Preserve local type if incoming is default 'Macrobenthos' but local is different (likely data loss scenario)
+              sampleType: (sample.sampleType == 'Macrobenthos' && existing.sampleType != 'Macrobenthos') 
+                  ? existing.sampleType 
+                  : sample.sampleType,
               sampleMarking: sample.sampleMarking,
               receiveId: sample.receiveId,
-              analyzedDate: sample.analyzedDate,
+              analyzedDate: sample.analyzedDate ?? existing.analyzedDate, // Preserve local if null
               deviceId: sample.deviceId,
               createdAt: sample.createdAt,
               updatedAt: sample.updatedAt,
@@ -715,9 +760,9 @@ class SampleSyncService {
           if (o.clientName != order.clientName || o.specimenType != order.specimenType) {
             return false;
           }
-          if (o.createdAt == null) return false;
-          final age = now.difference(o.createdAt!);
-          return age.inSeconds < 10 && o.firebaseId == null;
+          // Match any local order that hasn't been synced to Firebase yet
+          // Relaxing the time check to prevent duplicates if sync takes longer than 10s
+          return o.firebaseId == null;
         }).firstOrNull;
 
         if (recentLocal != null) {

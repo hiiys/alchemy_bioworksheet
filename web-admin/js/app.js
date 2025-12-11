@@ -42,7 +42,9 @@ auth.onAuthStateChanged(user => {
         loginScreen.classList.add('hidden');
         appScreen.classList.remove('hidden');
         userEmail.textContent = user.email;
-        loadTaxonomy();
+        if (typeof loadOrdersData === 'function') {
+            loadOrdersData();
+        }
     } else {
         loginScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
@@ -653,7 +655,7 @@ function parseCsv(text) {
 
     // Detect CSV format
     const isHierarchicalFormat = headers.includes('taxa_id') ||
-                                 (headers.includes('phylum') && headers.includes('genus'));
+        (headers.includes('phylum') && headers.includes('genus'));
 
     if (isHierarchicalFormat) {
         parseHierarchicalCsv(lines, headers);
@@ -2653,7 +2655,8 @@ generatePdfBtn.addEventListener('click', async () => {
         const allStationIds = [...new Set(typeResults.map(r => r.stationId))].sort().join(', ');
 
         y += 2;
-        addRow('Sample Type:', 'Sediment');
+        const sampleTypeDesc = sample.sampleDescription || (specimenType === 'Macrobenthos' ? 'Sediment' : 'Water');
+        addRow('Sample Type:', sampleTypeDesc);
         addRow('Sample Marking:', allStationIds || '');
         addRow('Number of samples:', String(typeResults.length));
         addRow('Number of replicates:', 'N/A');
@@ -2725,7 +2728,8 @@ generatePdfBtn.addEventListener('click', async () => {
         doc.setFont('helvetica', 'bold');
         doc.text('Description:', marginLeft, marginTop + 39);
         doc.setFont('helvetica', 'normal');
-        doc.text('SEDIMENT', marginLeft + 45, marginTop + 39);
+        const sampleTypeDescPage2 = sample.sampleDescription || (specimenType === 'Macrobenthos' ? 'SEDIMENT' : 'WATER');
+        doc.text(sampleTypeDescPage2.toUpperCase(), marginLeft + 45, marginTop + 39);
 
         // Sample List Table
         const tableStartY = marginTop + 50;
@@ -2882,7 +2886,7 @@ generatePdfBtn.addEventListener('click', async () => {
                     ),
                 },
                 margin: { left: marginLeft, right: marginRight },
-                didParseCell: function(data) {
+                didParseCell: function (data) {
                     // Default line widths - thin horizontal, bold vertical
                     const defaultLineWidth = {
                         top: 0.1,      // Thin grey horizontal

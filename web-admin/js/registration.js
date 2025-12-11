@@ -286,18 +286,37 @@ async function loadOrders() {
     try {
         const ordersRef = db.collection('orders');
         let query = ordersRef.where('specimenType', '==', currentOrdersType);
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
+
+        // Remove server-side sorting to avoid issues with mixed data types (String vs Timestamp)
+        // const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const snapshot = await query.get();
 
         allOrders = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
+        // Sort client-side to handle mixed types (Timestamp vs String)
+        allOrders.sort((a, b) => {
+            const getMillis = (val) => {
+                if (!val) return 0;
+                if (val.toMillis) return val.toMillis(); // Firestore Timestamp
+                if (val.toDate) return val.toDate().getTime(); // Firestore Timestamp (legacy)
+                return new Date(val).getTime() || 0; // String or Date
+            };
+            return getMillis(b.createdAt) - getMillis(a.createdAt); // Descending
+        });
+
         // Recalculate actual sample counts for each order
         await recalculateOrderSampleCounts();
 
         updateOrdersAutocomplete();
         renderOrders();
+
+        // Update status to help debug
+        if (typeof setStatus === 'function') {
+            setStatus(`Loaded ${allOrders.length} orders`);
+        }
     } catch (error) {
         console.error('Error loading orders:', error);
         ordersList.innerHTML = `<p class="error">Error loading orders: ${error.message}</p>`;
@@ -391,15 +410,33 @@ async function loadSamples() {
     try {
         const samplesRef = db.collection('samples');
         let query = samplesRef.where('sampleType', '==', currentSamplesType);
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
+
+        // Remove server-side sorting to avoid issues with mixed data types
+        // const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const snapshot = await query.get();
 
         allSamples = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
+        // Sort client-side
+        allSamples.sort((a, b) => {
+            const getMillis = (val) => {
+                if (!val) return 0;
+                if (val.toMillis) return val.toMillis();
+                if (val.toDate) return val.toDate().getTime();
+                return new Date(val).getTime() || 0;
+            };
+            return getMillis(b.createdAt) - getMillis(a.createdAt);
+        });
+
         updateSamplesAutocomplete();
         renderSamples();
+
+        if (typeof setStatus === 'function') {
+            setStatus(`Loaded ${allSamples.length} samples`);
+        }
     } catch (error) {
         console.error('Error loading samples:', error);
         samplesList.innerHTML = `<p class="error">Error loading samples: ${error.message}</p>`;
@@ -433,7 +470,7 @@ function renderSamples() {
     html += '<th>Date</th>';
     html += '<th>Lat/Lon</th>';
     html += '<th>Habitat</th>';
-    html += '<th>Status</th>';
+
     html += '<th style="width: 80px;">Action</th>';
     html += '</tr></thead><tbody>';
 
@@ -446,7 +483,7 @@ function renderSamples() {
         html += `<td style="cursor: pointer;" onclick="openEditSampleModal('${sample.id}')">${formatDate(sample.date)}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditSampleModal('${sample.id}')">${sample.lat && sample.lon ? `${sample.lat}, ${sample.lon}` : 'N/A'}</td>`;
         html += `<td style="cursor: pointer;" onclick="openEditSampleModal('${sample.id}')">${sample.habitat || 'N/A'}</td>`;
-        html += `<td style="cursor: pointer;" onclick="openEditSampleModal('${sample.id}')">${sample.completed ? '<span style="color: green;">Completed</span>' : '<span style="color: orange;">Pending</span>'}</td>`;
+
         html += `<td><button class="delete-btn" onclick="event.stopPropagation(); deleteSample('${sample.id}', '${sample.sampleMarking || sample.receiveId}');" title="Delete sample">Delete</button></td>`;
         html += '</tr>';
     });
@@ -460,6 +497,7 @@ async function addNewSample() {
     try {
         const orderIdInput = document.getElementById('sample-order-id').value.trim();
         const stationId = document.getElementById('sample-station-id').value.trim();
+        const sampleMarkingInput = document.getElementById('sample-sample-marking').value.trim();
         const client = document.getElementById('sample-client').value.trim();
         const date = document.getElementById('sample-date').value;
         const lat = document.getElementById('sample-lat').value.trim();
@@ -497,7 +535,7 @@ async function addNewSample() {
         const sampleData = {
             orderId: orderId,
             stationId: stationId,
-            sampleMarking: stationId,
+            sampleMarking: sampleMarkingInput || stationId,
             client: client,
             date: date,
             lat: lat || null,
@@ -534,7 +572,10 @@ async function addNewSample() {
 async function addNewOrder() {
     try {
         const clientName = document.getElementById('order-client-name').value.trim();
+        const clientAddress = document.getElementById('order-client-address').value.trim();
         const institution = document.getElementById('order-institution').value.trim();
+        const authorizedBy = document.getElementById('order-authorized-by').value.trim();
+        const sammNo = document.getElementById('order-samm-no').value.trim();
         const numSamples = parseInt(document.getElementById('order-num-samples').value);
         const numReplicates = parseInt(document.getElementById('order-num-replicates').value) || 1;
         const sampleDescription = document.getElementById('order-sample-description').value.trim();
@@ -558,7 +599,7 @@ async function addNewOrder() {
         // Create order object
         const orderData = {
             clientName: clientName,
-            clientAddress: '', // Not collected in web form
+            clientAddress: clientAddress || null,
             specimenType: currentOrdersType,
             numberOfSamples: numSamples,
             numberOfReplicates: numReplicates,
@@ -575,8 +616,8 @@ async function addNewOrder() {
             reportNo: null,
             referenceId: null,
             comments: comments || null,
-            sammNo: null,
-            authorizedBy: null,
+            sammNo: sammNo || null,
+            authorizedBy: authorizedBy || null,
             institution: institution || null,
             sampleDescription: sampleDescription || null,
             towDistance: towDistance || null,
@@ -958,14 +999,15 @@ async function openEditSampleModal(sampleId) {
         // Populate form fields
         editSampleRefId.textContent = sample.receiveId || 'N/A';
         editSampleOrderId.value = sample.orderId || '';
-        editSampleStationId.value = sample.stationId || sample.sampleMarking || '';
+        editSampleStationId.value = sample.stationId || '';
+        document.getElementById('edit-sample-sample-marking').value = sample.sampleMarking || sample.stationId || '';
         editSampleClient.value = sample.client || '';
         editSampleDate.value = sample.date || '';
         editSampleLat.value = sample.lat || '';
         editSampleLon.value = sample.lon || '';
         editSampleHabitat.value = sample.habitat || '';
         editSampleRemarks.value = sample.remarks || '';
-        editSampleCompleted.value = sample.completed ? 'true' : 'false';
+        editSampleCompleted.value = (sample.completed === true || sample.completed === 'true') ? 'true' : 'false';
 
         // Show modal
         editSampleModal.classList.remove('hidden');
@@ -985,6 +1027,7 @@ async function updateSample() {
         }
 
         const stationId = editSampleStationId.value.trim();
+        const sampleMarking = document.getElementById('edit-sample-sample-marking').value.trim();
         const client = editSampleClient.value.trim();
         const date = editSampleDate.value;
         const lat = editSampleLat.value.trim();
@@ -1002,7 +1045,7 @@ async function updateSample() {
         // Update sample object
         const updateData = {
             stationId: stationId,
-            sampleMarking: stationId,
+            sampleMarking: sampleMarking || stationId,
             client: client,
             date: date,
             lat: lat || null,
@@ -1010,6 +1053,7 @@ async function updateSample() {
             habitat: habitat || null,
             remarks: remarks || null,
             completed: completed,
+            synced: true,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -1051,7 +1095,10 @@ async function openEditOrderModal(orderId) {
         // Populate form fields
         editOrderSpecimenType.textContent = order.specimenType || 'N/A';
         editOrderClientName.value = order.clientName || '';
+        document.getElementById('edit-order-client-address').value = order.clientAddress || '';
         editOrderInstitution.value = order.institution || '';
+        document.getElementById('edit-order-authorized-by').value = order.authorizedBy || '';
+        document.getElementById('edit-order-samm-no').value = order.sammNo || '';
         editOrderNumSamples.value = sampleCount;
         editOrderNumReplicates.value = order.numberOfReplicates || 1;
         editOrderSampleDescription.value = order.sampleDescription || '';
@@ -1100,7 +1147,10 @@ async function updateOrder() {
         }
 
         const clientName = editOrderClientName.value.trim();
+        const clientAddress = document.getElementById('edit-order-client-address').value.trim();
         const institution = editOrderInstitution.value.trim();
+        const authorizedBy = document.getElementById('edit-order-authorized-by').value.trim();
+        const sammNo = document.getElementById('edit-order-samm-no').value.trim();
         const numReplicates = parseInt(editOrderNumReplicates.value) || 1;
         const sampleDescription = editOrderSampleDescription.value.trim();
         const gearUsed = editOrderGearUsed.value.trim();
@@ -1131,7 +1181,10 @@ async function updateOrder() {
         // Update order object
         const updateData = {
             clientName: clientName,
+            clientAddress: clientAddress || null,
             institution: institution || null,
+            sammNo: sammNo || null,
+            authorizedBy: authorizedBy || null,
             numberOfSamples: sampleCount,
             numberOfReplicates: numReplicates,
             sampleDescription: sampleDescription || null,

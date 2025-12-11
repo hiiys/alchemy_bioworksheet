@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taxonomy Admin Panel</title>
+    <title>Alchemy Bioworks</title>
     <link rel="stylesheet" href="css/styles.css">
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -12,8 +13,11 @@
     <!-- Excel and PDF generation libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="images/logo.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
@@ -34,7 +38,7 @@
     <div id="app-screen" class="screen hidden">
         <!-- Header -->
         <header>
-            <h1>Taxonomy Admin Panel</h1>
+            <h1>Alchemy Bioworks</h1>
             <div class="header-actions">
                 <span id="user-email"></span>
                 <button id="logout-btn">Sign Out</button>
@@ -43,15 +47,15 @@
 
         <!-- Main Navigation Tabs -->
         <nav class="tabs">
-            <button class="nav-tab active" data-page="taxonomy">Taxonomy</button>
+            <button class="nav-tab active" data-page="orders">Orders</button>
+            <button class="nav-tab" data-page="samples">Samples</button>
+            <button class="nav-tab" data-page="taxonomy">Taxonomy</button>
             <button class="nav-tab" data-page="reporting">Reporting</button>
             <button class="nav-tab" data-page="report-log">Report Log</button>
-            <button class="nav-tab" data-page="orders">Orders</button>
-            <button class="nav-tab" data-page="samples">Samples</button>
         </nav>
 
         <!-- Specimen Type Tabs (for Taxonomy page) -->
-        <nav class="tabs" id="specimen-tabs">
+        <nav class="tabs" id="specimen-tabs" style="display: none;">
             <button class="tab active" data-type="Macrobenthos">Macrobenthos</button>
             <button class="tab" data-type="Zooplankton">Zooplankton</button>
             <button class="tab" data-type="Phytoplankton">Phytoplankton</button>
@@ -60,14 +64,15 @@
         <!-- Main Content -->
         <main>
             <!-- Taxonomy Page -->
-            <div id="taxonomy-page" class="page-content">
+            <div id="taxonomy-page" class="page-content hidden">
                 <!-- Toolbar -->
                 <div class="toolbar">
                     <button id="add-root-btn" class="btn-primary">+ Add Root Taxon</button>
                     <button id="import-csv-btn" class="btn-secondary">Import CSV</button>
                     <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
                     <button id="delete-all-btn" class="btn-danger">Delete All</button>
-                    <button id="review-changes-btn" class="btn-secondary">Review Changes <span id="pending-count-badge" class="badge hidden">0</span></button>
+                    <button id="review-changes-btn" class="btn-secondary">Review Changes <span id="pending-count-badge"
+                            class="badge hidden">0</span></button>
                     <button id="help-btn" class="btn-secondary">Help</button>
                     <button id="refresh-btn">Refresh</button>
                     <span id="taxa-count"></span>
@@ -128,14 +133,11 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Report cover:</label>
-                                    <input type="text" id="report-no" placeholder="Auto-generated from selected results" readonly>
+                                    <input type="text" id="report-no" placeholder="Auto-generated from selected results"
+                                        readonly>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Institution:</label>
-                                    <input type="text" id="institution" placeholder="Enter institution name">
-                                </div>
                                 <div class="form-group">
                                     <label>Authorised by:</label>
                                     <input type="text" id="authorised-by" placeholder="Enter authoriser name">
@@ -144,11 +146,13 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Client Address:</label>
-                                    <textarea id="client-address" rows="3" placeholder="Enter client address"></textarea>
+                                    <textarea id="client-address" rows="3"
+                                        placeholder="Enter client address"></textarea>
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button type="button" id="save-report-info-btn" class="btn-primary">Save Report Info</button>
+                                <button type="button" id="save-report-info-btn" class="btn-primary">Save Report
+                                    Info</button>
                                 <button type="button" id="clear-report-info-btn" class="btn-secondary">Clear</button>
                             </div>
                         </form>
@@ -162,7 +166,8 @@
                         <div class="filter-bar">
                             <label>Client: </label>
                             <input type="text" id="results-client-filter" placeholder="Filter by client...">
-                            <button id="results-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+                            <button id="results-search-btn" class="btn-secondary"
+                                style="margin-left: 10px;">Search</button>
                         </div>
 
                         <div id="results-summary" class="results-summary">
@@ -175,11 +180,15 @@
                         </div>
 
                         <div class="form-actions">
-                            <button type="button" id="generate-excel-btn" class="btn-primary" disabled>Generate Excel Report</button>
-                            <button type="button" id="generate-pdf-btn" class="btn-primary" disabled>Generate PDF Report</button>
-                            <button type="button" id="export-selected-btn" class="btn-secondary" disabled>Export CSV</button>
+                            <button type="button" id="generate-excel-btn" class="btn-primary" disabled>Generate Excel
+                                Report</button>
+                            <button type="button" id="generate-pdf-btn" class="btn-primary" disabled>Generate PDF
+                                Report</button>
+                            <button type="button" id="export-selected-btn" class="btn-secondary" disabled>Export
+                                CSV</button>
                             <button type="button" id="select-all-results-btn" class="btn-secondary">Select All</button>
-                            <button type="button" id="deselect-all-results-btn" class="btn-secondary">Deselect All</button>
+                            <button type="button" id="deselect-all-results-btn" class="btn-secondary">Deselect
+                                All</button>
                         </div>
                     </div>
                 </div>
@@ -215,7 +224,7 @@
             </div>
 
             <!-- Orders Page -->
-            <div id="orders-page" class="page-content hidden">
+            <div id="orders-page" class="page-content">
                 <!-- Orders Specimen Type Tabs -->
                 <nav class="tabs">
                     <button class="tab active" data-type="Macrobenthos">Macrobenthos</button>
@@ -231,9 +240,11 @@
 
                         <div class="filter-bar">
                             <label>Client: </label>
-                            <input type="text" id="orders-client-filter" list="orders-clients-list" placeholder="Filter by client...">
+                            <input type="text" id="orders-client-filter" list="orders-clients-list"
+                                placeholder="Filter by client...">
                             <datalist id="orders-clients-list"></datalist>
-                            <button id="orders-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+                            <button id="orders-search-btn" class="btn-secondary"
+                                style="margin-left: 10px;">Search</button>
                             <button id="orders-refresh-btn" class="btn-secondary">Refresh</button>
                             <button id="export-orders-csv-btn" class="btn-secondary">Export CSV</button>
                             <button id="add-order-btn" class="btn-primary">+ Add Order</button>
@@ -267,12 +278,15 @@
 
                         <div class="filter-bar">
                             <label>Client: </label>
-                            <input type="text" id="samples-client-filter" list="samples-clients-list" placeholder="Filter by client...">
+                            <input type="text" id="samples-client-filter" list="samples-clients-list"
+                                placeholder="Filter by client...">
                             <datalist id="samples-clients-list"></datalist>
                             <label style="margin-left: 15px;">Order ID: </label>
-                            <input type="text" id="samples-order-filter" list="samples-orders-list" placeholder="Filter by order...">
+                            <input type="text" id="samples-order-filter" list="samples-orders-list"
+                                placeholder="Filter by order...">
                             <datalist id="samples-orders-list"></datalist>
-                            <button id="samples-search-btn" class="btn-secondary" style="margin-left: 10px;">Search</button>
+                            <button id="samples-search-btn" class="btn-secondary"
+                                style="margin-left: 10px;">Search</button>
                             <button id="samples-refresh-btn" class="btn-secondary">Refresh</button>
                             <button id="export-samples-csv-btn" class="btn-secondary">Export CSV</button>
                             <button id="add-sample-btn" class="btn-primary">+ Add Sample</button>
@@ -364,11 +378,12 @@
     <!-- Help Modal -->
     <div id="help-modal" class="modal hidden">
         <div class="modal-content modal-wide">
-            <h3>Help - Taxonomy Admin Panel</h3>
+            <h3>Help - Alchemy Bioworks</h3>
 
             <div class="help-section">
                 <h4>Getting Started</h4>
-                <p>Use this admin panel to manage taxonomy hierarchies for Macrobenthos, Zooplankton, and Phytoplankton specimen types.</p>
+                <p>Use this admin panel to manage taxonomy hierarchies for Macrobenthos, Zooplankton, and Phytoplankton
+                    specimen types.</p>
             </div>
 
             <div class="help-section">
@@ -388,30 +403,89 @@
                 <h5 style="margin-top: 15px;">Format 1: Standard Format (with parent-child relationships)</h5>
                 <p>Use this format when you want explicit control over the hierarchy:</p>
                 <table class="help-table">
-                    <tr><th>Column</th><th>Required</th><th>Description</th></tr>
-                    <tr><td>id</td><td>Yes</td><td>Unique numeric ID for the taxon</td></tr>
-                    <tr><td>parentId</td><td>No</td><td>ID of parent taxon (empty for root taxa)</td></tr>
-                    <tr><td>name</td><td>Yes</td><td>Name of the taxon</td></tr>
-                    <tr><td>rank</td><td>Yes</td><td>Taxonomic rank (see valid ranks below)</td></tr>
-                    <tr><td>notes</td><td>No</td><td>Optional notes or description</td></tr>
+                    <tr>
+                        <th>Column</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>id</td>
+                        <td>Yes</td>
+                        <td>Unique numeric ID for the taxon</td>
+                    </tr>
+                    <tr>
+                        <td>parentId</td>
+                        <td>No</td>
+                        <td>ID of parent taxon (empty for root taxa)</td>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>Yes</td>
+                        <td>Name of the taxon</td>
+                    </tr>
+                    <tr>
+                        <td>rank</td>
+                        <td>Yes</td>
+                        <td>Taxonomic rank (see valid ranks below)</td>
+                    </tr>
+                    <tr>
+                        <td>notes</td>
+                        <td>No</td>
+                        <td>Optional notes or description</td>
+                    </tr>
                 </table>
                 <p style="margin-top: 8px;"><em>Example: id,parentId,name,rank,notes</em></p>
 
                 <h5 style="margin-top: 20px;">Format 2: Hierarchical Format (automatic hierarchy)</h5>
-                <p>Use this format to automatically build the taxonomy hierarchy. IDs and parent-child relationships are created automatically:</p>
+                <p>Use this format to automatically build the taxonomy hierarchy. IDs and parent-child relationships are
+                    created automatically:</p>
                 <table class="help-table">
-                    <tr><th>Column</th><th>Required</th><th>Description</th></tr>
-                    <tr><td>Taxa_ID</td><td>No</td><td>Optional reference ID (not used in database)</td></tr>
-                    <tr><td>Phylum</td><td>Yes*</td><td>Phylum name</td></tr>
-                    <tr><td>Class</td><td>Yes*</td><td>Class name</td></tr>
-                    <tr><td>Order</td><td>Yes*</td><td>Order name</td></tr>
-                    <tr><td>Family</td><td>Yes*</td><td>Family name</td></tr>
-                    <tr><td>Genus</td><td>Yes*</td><td>Genus name</td></tr>
-                    <tr><td>Species</td><td>No</td><td>Species name (optional)</td></tr>
+                    <tr>
+                        <th>Column</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Taxa_ID</td>
+                        <td>No</td>
+                        <td>Optional reference ID (not used in database)</td>
+                    </tr>
+                    <tr>
+                        <td>Phylum</td>
+                        <td>Yes*</td>
+                        <td>Phylum name</td>
+                    </tr>
+                    <tr>
+                        <td>Class</td>
+                        <td>Yes*</td>
+                        <td>Class name</td>
+                    </tr>
+                    <tr>
+                        <td>Order</td>
+                        <td>Yes*</td>
+                        <td>Order name</td>
+                    </tr>
+                    <tr>
+                        <td>Family</td>
+                        <td>Yes*</td>
+                        <td>Family name</td>
+                    </tr>
+                    <tr>
+                        <td>Genus</td>
+                        <td>Yes*</td>
+                        <td>Genus name</td>
+                    </tr>
+                    <tr>
+                        <td>Species</td>
+                        <td>No</td>
+                        <td>Species name (optional)</td>
+                    </tr>
                 </table>
-                <p style="margin-top: 8px;"><em>*At least one taxonomic rank must be provided. Empty cells are skipped.</em></p>
+                <p style="margin-top: 8px;"><em>*At least one taxonomic rank must be provided. Empty cells are
+                        skipped.</em></p>
                 <p style="margin-top: 8px;"><em>Example: Taxa_ID,Phylum,Class,Order,Family,Genus</em></p>
-                <p style="margin-top: 8px;"><strong>Note:</strong> The hierarchical format automatically prevents duplicates and builds proper parent-child relationships.</p>
+                <p style="margin-top: 8px;"><strong>Note:</strong> The hierarchical format automatically prevents
+                    duplicates and builds proper parent-child relationships.</p>
             </div>
 
             <div class="help-section">
@@ -474,12 +548,17 @@
             <p>Register a new sample. Reference ID will be auto-generated.</p>
             <form id="add-sample-form">
                 <label>Order ID: <span style="color: red;">*</span></label>
-                <input type="text" id="sample-order-id" required placeholder="Enter order ID (Firebase document ID)" list="add-sample-orders-list">
+                <input type="text" id="sample-order-id" required placeholder="Enter order ID (Firebase document ID)"
+                    list="add-sample-orders-list">
                 <datalist id="add-sample-orders-list"></datalist>
-                <small style="color: #666; display: block; margin-top: 5px;">Required: Every sample must belong to an order</small>
+                <small style="color: #666; display: block; margin-top: 5px;">Required: Every sample must belong to an
+                    order</small>
 
-                <label>Station ID / Sample Marking:</label>
+                <label>Station ID:</label>
                 <input type="text" id="sample-station-id" required placeholder="Enter station ID">
+
+                <label>Sample Marking:</label>
+                <input type="text" id="sample-sample-marking" placeholder="Enter sample marking (optional)">
 
                 <label>Client Name:</label>
                 <input type="text" id="sample-client" required placeholder="Enter client name">
@@ -511,7 +590,8 @@
     <div id="sample-markings-modal" class="modal hidden">
         <div class="modal-content modal-wide">
             <h3>Sample List Registration</h3>
-            <p><strong>Order:</strong> <span id="marking-order-client"></span> | <strong>Specimen Type:</strong> <span id="marking-order-type"></span></p>
+            <p><strong>Order:</strong> <span id="marking-order-client"></span> | <strong>Specimen Type:</strong> <span
+                    id="marking-order-type"></span></p>
 
             <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group">
@@ -523,7 +603,8 @@
                     <input type="date" id="marking-date-received">
                 </div>
                 <div class="form-group" style="display: flex; align-items: flex-end;">
-                    <button type="button" id="add-marking-btn" class="btn-primary" style="width: 100%;">Add Sample</button>
+                    <button type="button" id="add-marking-btn" class="btn-primary" style="width: 100%;">Add
+                        Sample</button>
                 </div>
             </div>
 
@@ -549,10 +630,14 @@
             <p><strong>Reference ID:</strong> <span id="edit-sample-ref-id"></span></p>
             <form id="edit-sample-form">
                 <label>Order ID:</label>
-                <input type="text" id="edit-sample-order-id" readonly disabled style="background: #f5f5f5; cursor: not-allowed;">
+                <input type="text" id="edit-sample-order-id" readonly disabled
+                    style="background: #f5f5f5; cursor: not-allowed;">
 
-                <label>Station ID / Sample Marking:</label>
+                <label>Station ID:</label>
                 <input type="text" id="edit-sample-station-id" required placeholder="Enter station ID">
+
+                <label>Sample Marking:</label>
+                <input type="text" id="edit-sample-sample-marking" placeholder="Enter sample marking">
 
                 <label>Client Name:</label>
                 <input type="text" id="edit-sample-client" required placeholder="Enter client name">
@@ -599,16 +684,34 @@
                         <input type="text" id="edit-order-client-name" required placeholder="Enter client name">
                     </div>
                     <div class="form-group">
+                        <label>Client Address:</label>
+                        <input type="text" id="edit-order-client-address" placeholder="Enter client address">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label>Institution:</label>
                         <input type="text" id="edit-order-institution" placeholder="Enter institution">
+                    </div>
+                    <div class="form-group">
+                        <label>Authorized By:</label>
+                        <input type="text" id="edit-order-authorized-by" placeholder="Enter authorized by">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Samm No.:</label>
+                        <input type="text" id="edit-order-samm-no" placeholder="Enter SAMM No.">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Number of Samples (Auto-calculated):</label>
-                        <input type="number" id="edit-order-num-samples" readonly disabled style="background: #f5f5f5; cursor: not-allowed;">
-                        <p style="font-size: 11px; color: #666; margin-top: 5px;">Based on registered sample markings</p>
+                        <input type="number" id="edit-order-num-samples" readonly disabled
+                            style="background: #f5f5f5; cursor: not-allowed;">
+                        <p style="font-size: 11px; color: #666; margin-top: 5px;">Based on registered sample markings
+                        </p>
                     </div>
                     <div class="form-group" id="edit-order-num-replicates-group">
                         <label>Number of Replicates:</label>
@@ -701,7 +804,8 @@
     <div id="add-order-modal" class="modal hidden">
         <div class="modal-content modal-wide">
             <h3>Add Order</h3>
-            <p id="order-modal-subtitle">Register a new order for <strong id="order-specimen-type">Macrobenthos</strong></p>
+            <p id="order-modal-subtitle">Register a new order for <strong id="order-specimen-type">Macrobenthos</strong>
+            </p>
             <form id="add-order-form">
                 <!-- Common Fields -->
                 <div class="form-row">
@@ -710,8 +814,24 @@
                         <input type="text" id="order-client-name" required placeholder="Enter client name">
                     </div>
                     <div class="form-group">
+                        <label>Client Address:</label>
+                        <input type="text" id="order-client-address" placeholder="Enter client address">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label>Institution:</label>
                         <input type="text" id="order-institution" placeholder="Enter institution">
+                    </div>
+                    <div class="form-group">
+                        <label>Authorized By:</label>
+                        <input type="text" id="order-authorized-by" placeholder="Enter authorized by">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Samm No.:</label>
+                        <input type="text" id="order-samm-no" placeholder="Enter SAMM No.">
                     </div>
                 </div>
 
@@ -806,4 +926,5 @@
     <script src="js/report_log.js"></script>
     <script src="js/registration.js"></script>
 </body>
+
 </html>

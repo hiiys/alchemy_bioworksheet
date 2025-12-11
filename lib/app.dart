@@ -10,6 +10,7 @@ import 'ui/registration/registration_page.dart';
 import 'ui/analysis/analysis_page.dart';
 import 'ui/export/export_page.dart';
 import 'ui/order/order_registration_page.dart';
+import 'ui/export_logs/export_logs_page.dart';
 
 class AlchemyBioworksheetApp extends StatelessWidget {
   const AlchemyBioworksheetApp({super.key});
@@ -32,6 +33,7 @@ class AlchemyBioworksheetApp extends StatelessWidget {
           AppRoutes.registration: (context) => const RegistrationPage(),
           AppRoutes.analysis: (context) => const AnalysisPage(),
           AppRoutes.export: (context) => const ExportPage(),
+          AppRoutes.exportLogs: (context) => const ExportLogsPage(),
           AppRoutes.orderRegistration: (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments

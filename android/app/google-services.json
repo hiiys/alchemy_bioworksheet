@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "126522184124",
-    "project_id": "alchemy-bioworksheet",
-    "storage_bucket": "alchemy-bioworksheet.firebasestorage.app"
+    "project_number": "291308078998",
+    "project_id": "alchemybioworks-dev",
+    "storage_bucket": "alchemybioworks-dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:126522184124:android:6721575d1e4aa5c7e29bb9",
+        "mobilesdk_app_id": "1:291308078998:android:b6fe4dec1604aee97c7fb7",
         "android_client_info": {
-          "package_name": "com.example.alchemy_bioworksheet"
+          "package_name": "com.example.alchemy_bioworks"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBIsTfSJrzOs9crnF8ew2MgJg1Xt_FoiWI"
+          "current_key": "AIzaSyAn_WBgAMKaVSpeZtNuSSPtZdEUFclQ4yY"
         }
       ],
       "services": {

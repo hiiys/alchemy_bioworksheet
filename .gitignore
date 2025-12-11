@@ -49,3 +49,4 @@ scripts/service-account-key.json
 scripts/*.json
 !scripts/package.json
 scripts/node_modules/
+node_modules

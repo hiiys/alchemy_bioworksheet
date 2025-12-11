@@ -53,10 +53,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBIsTfSJrzOs9crnF8ew2MgJg1Xt_FoiWI',
-    appId: '1:126522184124:android:6721575d1e4aa5c7e29bb9',
-    messagingSenderId: '126522184124',
-    projectId: 'alchemy-bioworksheet',
-    storageBucket: 'alchemy-bioworksheet.firebasestorage.app',
+    apiKey: 'AIzaSyAn_WBgAMKaVSpeZtNuSSPtZdEUFclQ4yY',
+    appId: '1:291308078998:android:b6fe4dec1604aee97c7fb7',
+    messagingSenderId: '291308078998',
+    projectId: 'alchemybioworks-dev',
+    storageBucket: 'alchemybioworks-dev.firebasestorage.app',
   );
 }
